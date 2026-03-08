@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BookSidebar } from "@/components/BookSidebar";
 import { ChatMessage } from "@/components/ChatMessage";
+import { SkeletonMessage } from "@/components/SkeletonBook";
 import { streamChat, type Message, type SearchMode } from "@/lib/chat";
 import { Send, BookOpen, Globe, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +25,7 @@ export default function Index() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>("both");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -37,12 +39,14 @@ export default function Index() {
   }, []);
 
   const loadMessages = useCallback(async (convId: string) => {
+    setLoadingMessages(true);
     const { data } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", convId)
       .order("created_at", { ascending: true });
     if (data) setMessages(data as Message[]);
+    setLoadingMessages(false);
   }, []);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
@@ -136,7 +140,14 @@ export default function Index() {
 
       <main className="flex flex-1 flex-col">
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8">
-          {messages.length === 0 ? (
+          {loadingMessages ? (
+            <div className="mx-auto max-w-3xl space-y-4">
+              <SkeletonMessage isUser />
+              <SkeletonMessage />
+              <SkeletonMessage isUser />
+              <SkeletonMessage />
+            </div>
+          ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <BookOpen className="mb-4 h-12 w-12 text-primary/30" />
               <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
