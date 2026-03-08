@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ export function BookSidebar({
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const loadBooks = async () => {
@@ -160,13 +161,17 @@ export function BookSidebar({
           onChange={(e) => setAuthor(e.target.value)}
           className="h-8 text-xs"
         />
-        <label className="block">
-          <Button variant="secondary" className="w-full gap-2" size="sm" disabled={uploading}>
-            <Upload className="h-3.5 w-3.5" />
-            {uploading ? "Processing…" : "Upload Book"}
-          </Button>
-          <input type="file" accept=".txt,.md,.text,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
-        </label>
+        <Button
+          variant="secondary"
+          className="w-full gap-2"
+          size="sm"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="h-3.5 w-3.5" />
+          {uploading ? "Processing…" : "Upload Book"}
+        </Button>
+        <input ref={fileInputRef} type="file" accept=".txt,.md,.text,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
       </div>
     </aside>
   );
