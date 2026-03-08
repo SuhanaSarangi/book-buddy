@@ -19,9 +19,11 @@ function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
 
 async function extractPdfText(buffer: Uint8Array): Promise<string> {
   // Use unpdf which is built for serverless/edge environments
-  const { extractText, getDocumentProxy } = await import("npm:unpdf@0.12.1");
-  const { totalPages, text } = await extractText(buffer);
-  console.log(`Extracted text from ${totalPages} pages`);
+  const { extractText } = await import("npm:unpdf@0.12.1");
+  const result = await extractText(buffer);
+  console.log(`Extracted text from ${result.totalPages} pages`);
+  // text may be a string or array of strings
+  const text = Array.isArray(result.text) ? result.text.join("\n\n") : String(result.text);
   return text;
 }
 
