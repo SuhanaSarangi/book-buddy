@@ -120,18 +120,6 @@ export function BookSidebar({
     onBooksChange();
   };
 
-  const setShelfStatus = async (bookId: string, status: ShelfStatus | null) => {
-    if (status === null) {
-      await supabase.from("user_book_shelves").delete().eq("book_id", bookId);
-    } else {
-      await supabase.from("user_book_shelves").upsert(
-        { user_id: user!.id, book_id: bookId, status },
-        { onConflict: "user_id,book_id" }
-      );
-    }
-    loadShelves();
-  };
-
   const getShelfStatus = (bookId: string): ShelfStatus | null => {
     return shelves.find((s) => s.book_id === bookId)?.status ?? null;
   };
