@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, BookMarked, Library, CheckCircle2, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, BookMarked, Library, CheckCircle2, RotateCcw, ChevronDown, ChevronUp, BookOpenText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type ShelfStatus = "want_to_read" | "currently_reading" | "completed";
