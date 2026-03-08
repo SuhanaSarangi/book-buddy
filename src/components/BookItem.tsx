@@ -54,7 +54,7 @@ export function BookItem({
         extra.progress_percent = 100;
         extra.times_read = (shelf?.times_read || 0) + (shelf?.status !== "completed" ? 1 : 0);
       }
-      await supabase.from("user_book_shelves").upsert(extra, { onConflict: "user_id,book_id" });
+      await supabase.from("user_book_shelves").upsert(extra as any, { onConflict: "user_id,book_id" });
     }
     onShelfChange();
   };
