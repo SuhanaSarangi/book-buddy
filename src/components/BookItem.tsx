@@ -34,11 +34,13 @@ export function BookItem({
   shelf,
   onDelete,
   onShelfChange,
+  onRead,
 }: {
   book: Book;
   shelf: BookShelf | null;
   onDelete: () => void;
   onShelfChange: () => void;
+  onRead?: () => void;
 }) {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
