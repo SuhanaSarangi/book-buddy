@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { BookSidebar } from "@/components/BookSidebar";
 import { ChatMessage } from "@/components/ChatMessage";
 import { SkeletonMessage } from "@/components/SkeletonBook";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { streamChat, type Message, type SearchMode } from "@/lib/chat";
+import { useConversations, useMessages, useCreateConversation } from "@/hooks/useQueries";
+import { logger } from "@/lib/logger";
 import { Send, BookOpen, Globe, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-type Conversation = { id: string; title: string; updated_at: string };
+import { useQueryClient } from "@tanstack/react-query";
 
 const SEARCH_MODES: { value: SearchMode; label: string; icon: React.ReactNode }[] = [
   { value: "books", label: "Books", icon: <BookOpen className="h-3.5 w-3.5" /> },
@@ -20,51 +22,42 @@ const SEARCH_MODES: { value: SearchMode; label: string; icon: React.ReactNode }[
 
 export default function Index() {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>("both");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const loadConversations = useCallback(async () => {
-    const { data } = await supabase
-      .from("conversations")
-      .select("*")
-      .order("updated_at", { ascending: false });
-    if (data) setConversations(data as Conversation[]);
-  }, []);
+  // React Query hooks
+  const { data: conversations = [] } = useConversations();
+  const { data: fetchedMessages, isLoading: loadingMessages } = useMessages(activeId);
+  const createConversation = useCreateConversation();
 
-  const loadMessages = useCallback(async (convId: string) => {
-    setLoadingMessages(true);
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", convId)
-      .order("created_at", { ascending: true });
-    if (data) setMessages(data as Message[]);
-    setLoadingMessages(false);
-  }, []);
+  // Sync fetched messages with local state (for streaming)
+  useEffect(() => {
+    if (fetchedMessages && !isLoading) {
+      setLocalMessages(fetchedMessages);
+    }
+  }, [fetchedMessages, isLoading]);
 
-  useEffect(() => { loadConversations(); }, [loadConversations]);
-  useEffect(() => { if (activeId) loadMessages(activeId); }, [activeId, loadMessages]);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [localMessages]);
 
-  const createConversation = async () => {
-    const { data } = await supabase
-      .from("conversations")
-      .insert({ title: "New Chat", user_id: user!.id })
-      .select()
-      .single();
-    if (data) {
+  const handleNewConversation = async () => {
+    try {
+      const data = await createConversation.mutateAsync({
+        title: "New Chat",
+        userId: user!.id,
+      });
       setActiveId(data.id);
-      setMessages([]);
-      loadConversations();
+      setLocalMessages([]);
+    } catch (err: any) {
+      logger.error("Index", "Failed to create conversation", err);
+      toast({ title: "Error", description: "Failed to create conversation.", variant: "destructive" });
     }
   };
 
@@ -73,24 +66,29 @@ export default function Index() {
 
     let convId = activeId;
     if (!convId) {
-      const { data } = await supabase
-        .from("conversations")
-        .insert({ title: input.slice(0, 50), user_id: user!.id })
-        .select()
-        .single();
-      if (!data) return;
-      convId = data.id;
-      setActiveId(convId);
-      loadConversations();
+      try {
+        const data = await createConversation.mutateAsync({
+          title: input.slice(0, 50),
+          userId: user!.id,
+        });
+        convId = data.id;
+        setActiveId(convId);
+      } catch (err: any) {
+        logger.error("Index", "Failed to create conversation for send", err);
+        toast({ title: "Error", description: "Failed to start conversation.", variant: "destructive" });
+        return;
+      }
     }
 
     const userMsg: Message = { role: "user", content: input };
-    const allMessages = [...messages, userMsg];
-    setMessages(allMessages);
+    const allMessages = [...localMessages, userMsg];
+    setLocalMessages(allMessages);
     setInput("");
     setIsLoading(true);
 
     let assistantContent = "";
+
+    logger.info("Index", `Sending message in conversation ${convId}`, { searchMode });
 
     try {
       await streamChat({
@@ -99,7 +97,7 @@ export default function Index() {
         searchMode,
         onDelta: (chunk) => {
           assistantContent += chunk;
-          setMessages((prev) => {
+          setLocalMessages((prev) => {
             const last = prev[prev.length - 1];
             if (last?.role === "assistant") {
               return prev.map((m, i) =>
@@ -109,9 +107,15 @@ export default function Index() {
             return [...prev, { role: "assistant", content: assistantContent }];
           });
         },
-        onDone: () => setIsLoading(false),
+        onDone: () => {
+          setIsLoading(false);
+          // Invalidate messages cache so it has the latest
+          queryClient.invalidateQueries({ queryKey: ["messages", convId] });
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          logger.info("Index", "Chat response complete");
+        },
         onSources: (sources) => {
-          setMessages((prev) => {
+          setLocalMessages((prev) => {
             const last = prev[prev.length - 1];
             if (last?.role === "assistant") {
               return prev.map((m, i) =>
@@ -123,6 +127,7 @@ export default function Index() {
         },
       });
     } catch (e: any) {
+      logger.error("Index", "Chat stream failed", e);
       toast({ title: "Error", description: e.message, variant: "destructive" });
       setIsLoading(false);
     }
@@ -130,95 +135,101 @@ export default function Index() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <BookSidebar
-        conversations={conversations}
-        activeConversationId={activeId}
-        onSelectConversation={setActiveId}
-        onNewConversation={createConversation}
-        onBooksChange={() => {}}
-      />
+      <ErrorBoundary>
+        <BookSidebar
+          conversations={conversations}
+          activeConversationId={activeId}
+          onSelectConversation={setActiveId}
+          onNewConversation={handleNewConversation}
+          onBooksChange={() => {
+            queryClient.invalidateQueries({ queryKey: ["books"] });
+          }}
+        />
+      </ErrorBoundary>
 
       <main className="flex flex-1 flex-col">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8">
-          {loadingMessages ? (
-            <div className="mx-auto max-w-3xl space-y-4">
-              <SkeletonMessage isUser />
-              <SkeletonMessage />
-              <SkeletonMessage isUser />
-              <SkeletonMessage />
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <BookOpen className="mb-4 h-12 w-12 text-primary/30" />
-              <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
-                Ask your library anything
-              </h2>
-              <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                Upload books to your private library, then ask questions. Toggle between searching your books, the internet, or both.
-              </p>
-            </div>
-          ) : (
-            <div className="mx-auto max-w-3xl space-y-4">
-              {messages.map((m, i) => (
-                <ChatMessage key={i} message={m} />
-              ))}
-              {isLoading && messages[messages.length - 1]?.role === "user" && (
-                <div className="flex gap-3">
-                  <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <BookOpen className="h-4 w-4" />
+        <ErrorBoundary>
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8">
+            {loadingMessages ? (
+              <div className="mx-auto max-w-3xl space-y-4">
+                <SkeletonMessage isUser />
+                <SkeletonMessage />
+                <SkeletonMessage isUser />
+                <SkeletonMessage />
+              </div>
+            ) : localMessages.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <BookOpen className="mb-4 h-12 w-12 text-primary/30" />
+                <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
+                  Ask your library anything
+                </h2>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                  Upload books to your private library, then ask questions. Toggle between searching your books, the internet, or both.
+                </p>
+              </div>
+            ) : (
+              <div className="mx-auto max-w-3xl space-y-4">
+                {localMessages.map((m, i) => (
+                  <ChatMessage key={i} message={m} />
+                ))}
+                {isLoading && localMessages[localMessages.length - 1]?.role === "user" && (
+                  <div className="flex gap-3">
+                    <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <BookOpen className="h-4 w-4" />
+                    </div>
+                    <div className="rounded-2xl bg-card border border-border px-4 py-3">
+                      <span className="text-sm text-muted-foreground animate-pulse">Thinking…</span>
+                    </div>
                   </div>
-                  <div className="rounded-2xl bg-card border border-border px-4 py-3">
-                    <span className="text-sm text-muted-foreground animate-pulse">Thinking…</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="border-t border-border bg-background px-6 py-4">
-          <div className="mx-auto max-w-3xl">
-            <div className="mb-3 flex items-center gap-1">
-              <span className="mr-2 text-xs text-muted-foreground">Search:</span>
-              {SEARCH_MODES.map((mode) => (
-                <button
-                  key={mode.value}
-                  onClick={() => setSearchMode(mode.value)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    searchMode === mode.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {mode.icon}
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-
-            <form
-              onSubmit={(e) => { e.preventDefault(); send(); }}
-              className="flex gap-2"
-            >
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  searchMode === "books"
-                    ? "Ask about your books…"
-                    : searchMode === "internet"
-                    ? "Search the web…"
-                    : "Ask anything…"
-                }
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button type="submit" disabled={isLoading || !input.trim()} size="icon">
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
+                )}
+              </div>
+            )}
           </div>
-        </div>
+
+          <div className="border-t border-border bg-background px-6 py-4">
+            <div className="mx-auto max-w-3xl">
+              <div className="mb-3 flex items-center gap-1">
+                <span className="mr-2 text-xs text-muted-foreground">Search:</span>
+                {SEARCH_MODES.map((mode) => (
+                  <button
+                    key={mode.value}
+                    onClick={() => setSearchMode(mode.value)}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      searchMode === mode.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {mode.icon}
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+
+              <form
+                onSubmit={(e) => { e.preventDefault(); send(); }}
+                className="flex gap-2"
+              >
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={
+                    searchMode === "books"
+                      ? "Ask about your books…"
+                      : searchMode === "internet"
+                      ? "Search the web…"
+                      : "Ask anything…"
+                  }
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={isLoading || !input.trim()} size="icon">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+            </div>
+          </div>
+        </ErrorBoundary>
       </main>
     </div>
   );
