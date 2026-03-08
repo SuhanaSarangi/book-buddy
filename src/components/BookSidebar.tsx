@@ -70,7 +70,7 @@ export function BookSidebar({
   };
 
   const loadShelves = async () => {
-    const { data } = await supabase.from("user_book_shelves").select("book_id, status");
+    const { data } = await supabase.from("user_book_shelves").select("book_id, status, progress_percent, current_page, total_pages, times_read");
     if (data) setShelves(data as BookShelf[]);
   };
 
