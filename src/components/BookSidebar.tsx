@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter } from "lucide-react";
+import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { BookItem, type BookShelf } from "@/components/BookItem";
+import { SkeletonBook, SkeletonConversation } from "@/components/SkeletonBook";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const GENRES = [
   "Fiction", "Non-Fiction", "Science Fiction", "Fantasy", "Mystery",
@@ -38,6 +40,8 @@ type Conversation = {
   updated_at: string;
 };
 
+const PAGE_SIZE = 20;
+
 export function BookSidebar({
   conversations,
   activeConversationId,
@@ -54,27 +58,74 @@ export function BookSidebar({
   const [books, setBooks] = useState<Book[]>([]);
   const [shelves, setShelves] = useState<BookShelf[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [loadingBooks, setLoadingBooks] = useState(true);
+  const [loadingShelves, setLoadingShelves] = useState(true);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [genre, setGenre] = useState("");
   const [filterGenre, setFilterGenre] = useState<string>("all");
   const [filterShelf, setFilterShelf] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user, signOut } = useAuth();
 
-  const loadBooks = async () => {
-    const { data } = await supabase.from("books").select("*").order("created_at", { ascending: false });
-    if (data) setBooks(data as Book[]);
-  };
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const loadShelves = async () => {
+  const loadBooks = useCallback(async (reset = false) => {
+    setLoadingBooks(true);
+    const currentPage = reset ? 0 : page;
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("books")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (debouncedSearch) {
+      query = query.or(`title.ilike.%${debouncedSearch}%,author.ilike.%${debouncedSearch}%`);
+    }
+
+    const { data } = await query;
+    if (data) {
+      if (reset) {
+        setBooks(data as Book[]);
+        setPage(0);
+      } else {
+        setBooks((prev) => currentPage === 0 ? data as Book[] : [...prev, ...(data as Book[])]);
+      }
+      setHasMore(data.length === PAGE_SIZE);
+    }
+    setLoadingBooks(false);
+  }, [page, debouncedSearch]);
+
+  const loadShelves = useCallback(async () => {
+    setLoadingShelves(true);
     const { data } = await supabase.from("user_book_shelves").select("book_id, status, progress_percent, current_page, total_pages, times_read");
     if (data) setShelves(data as BookShelf[]);
-  };
+    setLoadingShelves(false);
+  }, []);
 
-  useEffect(() => { loadBooks(); loadShelves(); }, []);
+  // Reset and reload when search changes
+  useEffect(() => {
+    setPage(0);
+    setHasMore(true);
+    loadBooks(true);
+  }, [debouncedSearch]);
+
+  useEffect(() => { loadBooks(); }, [page]);
+  useEffect(() => { loadShelves(); }, []);
+
+  const loadMore = () => {
+    if (hasMore && !loadingBooks) {
+      setPage((p) => p + 1);
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,7 +156,7 @@ export function BookSidebar({
       setTitle("");
       setAuthor("");
       setGenre("");
-      loadBooks();
+      loadBooks(true);
       onBooksChange();
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
@@ -116,7 +167,7 @@ export function BookSidebar({
 
   const deleteBook = async (id: string) => {
     await supabase.from("books").delete().eq("id", id);
-    loadBooks();
+    loadBooks(true);
     onBooksChange();
   };
 
@@ -134,6 +185,7 @@ export function BookSidebar({
   });
 
   const uniqueGenres = [...new Set(books.map((b) => b.genre).filter(Boolean))] as string[];
+  const isLoading = loadingBooks || loadingShelves;
 
   return (
     <aside className="flex h-full w-72 flex-col border-r border-border bg-sidebar">
@@ -190,6 +242,16 @@ export function BookSidebar({
 
           {showFilters && (
             <div className="mb-2 space-y-1.5">
+              {/* Debounced search input */}
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search books…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-7 pl-7 text-xs"
+                />
+              </div>
               <Select value={filterGenre} onValueChange={setFilterGenre}>
                 <SelectTrigger className="h-7 text-xs">
                   <SelectValue placeholder="All genres" />
@@ -216,15 +278,38 @@ export function BookSidebar({
           )}
 
           <div className="space-y-1">
-            {filteredBooks.map((b) => (
-              <BookItem
-                key={b.id}
-                book={b}
-                shelf={shelves.find((s) => s.book_id === b.id) ?? null}
-                onDelete={() => deleteBook(b.id)}
-                onShelfChange={loadShelves}
-              />
-            ))}
+            {isLoading && books.length === 0 ? (
+              <>
+                <SkeletonBook />
+                <SkeletonBook />
+                <SkeletonBook />
+              </>
+            ) : (
+              <>
+                {filteredBooks.map((b) => (
+                  <BookItem
+                    key={b.id}
+                    book={b}
+                    shelf={shelves.find((s) => s.book_id === b.id) ?? null}
+                    onDelete={() => deleteBook(b.id)}
+                    onShelfChange={loadShelves}
+                  />
+                ))}
+                {hasMore && filteredBooks.length > 0 && (
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingBooks}
+                    className="flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs text-muted-foreground hover:bg-muted/30 transition-colors disabled:opacity-50"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                    {loadingBooks ? "Loading…" : "Load more"}
+                  </button>
+                )}
+                {!isLoading && filteredBooks.length === 0 && (
+                  <p className="py-4 text-center text-xs text-muted-foreground">No books found</p>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
