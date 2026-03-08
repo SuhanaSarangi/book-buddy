@@ -18,10 +18,9 @@ function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
 }
 
 async function extractPdfText(buffer: Uint8Array): Promise<string> {
-  // Use pdfjs-dist which works without Node fs
-  const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.0.379/build/pdf.mjs");
+  const { getDocument } = await import("https://esm.sh/pdfjs-serverless@0.6.0");
   
-  const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const doc = await getDocument(buffer);
   const pages: string[] = [];
   
   for (let i = 1; i <= doc.numPages; i++) {
