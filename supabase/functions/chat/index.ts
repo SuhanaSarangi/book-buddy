@@ -95,6 +95,7 @@ Guidelines:
         conversation_id: conversationId,
         role: "user",
         content: userMessage,
+        user_id: user.id,
       });
     }
 
