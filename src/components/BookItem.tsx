@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, BookMarked, Library, CheckCircle2, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, BookMarked, Library, CheckCircle2, RotateCcw, ChevronDown, ChevronUp, BookOpenText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type ShelfStatus = "want_to_read" | "currently_reading" | "completed";
@@ -34,11 +34,13 @@ export function BookItem({
   shelf,
   onDelete,
   onShelfChange,
+  onRead,
 }: {
   book: Book;
   shelf: BookShelf | null;
   onDelete: () => void;
   onShelfChange: () => void;
+  onRead?: () => void;
 }) {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
@@ -109,6 +111,15 @@ export function BookItem({
 
       {/* Shelf buttons */}
       <div className="mt-1 flex gap-1">
+        {onRead && (
+          <button
+            onClick={onRead}
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+            title="Read book"
+          >
+            <BookOpenText className="h-3 w-3" />
+          </button>
+        )}
         {(Object.entries(SHELF_LABELS) as [ShelfStatus, { label: string; icon: React.ReactNode }][]).map(
           ([status, { label, icon }]) => (
             <button

@@ -38,12 +38,14 @@ export function BookSidebar({
   onSelectConversation,
   onNewConversation,
   onBooksChange,
+  onReadBook,
 }: {
   conversations: Conversation[];
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onBooksChange: () => void;
+  onReadBook?: (book: { id: string; title: string; author: string | null; total_chunks: number | null }) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
@@ -251,6 +253,7 @@ export function BookSidebar({
                     shelf={shelves.find((s) => s.book_id === b.id) ?? null}
                     onDelete={() => handleDelete(b.id)}
                     onShelfChange={invalidateShelves}
+                    onRead={onReadBook ? () => onReadBook(b) : undefined}
                   />
                 ))}
                 {hasNextPage && (
