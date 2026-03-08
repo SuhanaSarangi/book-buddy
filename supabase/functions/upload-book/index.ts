@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import pdf from "https://esm.sh/pdf-parse@1.1.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,8 +41,18 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Read file content as text
-    const text = await file.text();
+    // Read file content - handle PDF vs text
+    let text: string;
+    const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+
+    if (isPdf) {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = new Uint8Array(arrayBuffer);
+      const pdfData = await pdf(buffer);
+      text = pdfData.text;
+    } else {
+      text = await file.text();
+    }
 
     // Upload to storage
     const filePath = `${crypto.randomUUID()}-${file.name}`;
@@ -57,7 +68,6 @@ serve(async (req) => {
 
     // Generate embeddings and insert chunks
     for (let i = 0; i < chunks.length; i++) {
-      // Get embedding from Lovable AI using tool calling approach
       const embeddingRes = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
         method: "POST",
         headers: {
@@ -72,7 +82,6 @@ serve(async (req) => {
 
       if (!embeddingRes.ok) {
         console.error("Embedding error:", await embeddingRes.text());
-        // Store chunk without embedding as fallback
         await supabase.from("book_chunks").insert({
           book_id: book.id, chunk_index: i, content: chunks[i],
         });
