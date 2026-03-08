@@ -8,6 +8,7 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { SkeletonMessage } from "@/components/SkeletonBook";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { streamChat, type Message, type SearchMode } from "@/lib/chat";
+import { BookReader } from "@/components/BookReader";
 import { useConversations, useMessages, useCreateConversation } from "@/hooks/useQueries";
 import { logger } from "@/lib/logger";
 import { Send, BookOpen, Globe, Layers } from "lucide-react";
