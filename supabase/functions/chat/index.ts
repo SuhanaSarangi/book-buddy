@@ -158,6 +158,7 @@ Guidelines:
             role: "assistant",
             content: fullContent,
             sources: sources.length ? sources : null,
+            user_id: user.id,
           });
         }
       },
