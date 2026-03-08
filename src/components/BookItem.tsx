@@ -111,6 +111,15 @@ export function BookItem({
 
       {/* Shelf buttons */}
       <div className="mt-1 flex gap-1">
+        {onRead && (
+          <button
+            onClick={onRead}
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+            title="Read book"
+          >
+            <BookOpenText className="h-3 w-3" />
+          </button>
+        )}
         {(Object.entries(SHELF_LABELS) as [ShelfStatus, { label: string; icon: React.ReactNode }][]).map(
           ([status, { label, icon }]) => (
             <button
