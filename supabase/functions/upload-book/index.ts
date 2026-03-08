@@ -18,22 +18,11 @@ function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
 }
 
 async function extractPdfText(buffer: Uint8Array): Promise<string> {
-  const pdfjsServerless = await import("https://esm.sh/pdfjs-serverless@0.6.0");
-  const getDocument = pdfjsServerless.default || pdfjsServerless.getDocument;
-  
-  const doc = await getDocument(buffer);
-  const pages: string[] = [];
-  
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item: any) => item.str)
-      .join(" ");
-    pages.push(pageText);
-  }
-  
-  return pages.join("\n\n");
+  // Use unpdf which is built for serverless/edge environments
+  const { extractText, getDocumentProxy } = await import("npm:unpdf@0.12.1");
+  const { totalPages, text } = await extractText(buffer);
+  console.log(`Extracted text from ${totalPages} pages`);
+  return text;
 }
 
 serve(async (req) => {
@@ -77,12 +66,16 @@ serve(async (req) => {
       });
     }
 
+    console.log(`Extracted ${text.length} characters, chunking...`);
+
     // Upload to storage
     const filePath = `${crypto.randomUUID()}-${file.name}`;
     await supabase.storage.from("books").upload(filePath, file);
 
     // Create book record
     const chunks = chunkText(text);
+    console.log(`Created ${chunks.length} chunks`);
+    
     const { data: book, error: bookErr } = await supabase.from("books").insert({
       title, author, filename: file.name, file_path: filePath, total_chunks: chunks.length,
     }).select().single();
@@ -104,7 +97,7 @@ serve(async (req) => {
       });
 
       if (!embeddingRes.ok) {
-        console.error("Embedding error:", await embeddingRes.text());
+        console.error(`Embedding error for chunk ${i}:`, await embeddingRes.text());
         await supabase.from("book_chunks").insert({
           book_id: book.id, chunk_index: i, content: chunks[i],
         });
@@ -120,6 +113,7 @@ serve(async (req) => {
       });
     }
 
+    console.log(`Book "${title}" uploaded successfully with ${chunks.length} chunks`);
     return new Response(JSON.stringify({ success: true, book }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
