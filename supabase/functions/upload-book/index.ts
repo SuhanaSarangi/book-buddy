@@ -95,7 +95,7 @@ serve(async (req) => {
     console.log(`Created ${chunks.length} chunks`);
     
     const { data: book, error: bookErr } = await supabase.from("books").insert({
-      title, author, filename: file.name, file_path: filePath, total_chunks: chunks.length,
+      title, author, genre, filename: file.name, file_path: filePath, total_chunks: chunks.length, user_id: user.id,
     }).select().single();
 
     if (bookErr) throw bookErr;
