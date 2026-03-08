@@ -165,7 +165,7 @@ export function BookSidebar({
             <Upload className="h-3.5 w-3.5" />
             {uploading ? "Processing…" : "Upload Book (.txt)"}
           </Button>
-          <input type="file" accept=".txt,.md,.text" className="hidden" onChange={handleUpload} disabled={uploading} />
+          <input type="file" accept=".txt,.md,.text,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
         </label>
       </div>
     </aside>
