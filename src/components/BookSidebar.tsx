@@ -163,7 +163,7 @@ export function BookSidebar({
         <label className="block">
           <Button variant="secondary" className="w-full gap-2" size="sm" disabled={uploading}>
             <Upload className="h-3.5 w-3.5" />
-            {uploading ? "Processing…" : "Upload Book (.txt)"}
+            {uploading ? "Processing…" : "Upload Book"}
           </Button>
           <input type="file" accept=".txt,.md,.text,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
         </label>
