@@ -219,7 +219,7 @@ export function BookSidebar({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All shelves</SelectItem>
-                  {(Object.entries(SHELF_LABELS) as [ShelfStatus, { label: string }][]).map(([val, { label }]) => (
+                  {(Object.entries(SHELF_FILTER_LABELS) as [ShelfStatus, string][]).map(([val, label]) => (
                     <SelectItem key={val} value={val}>{label}</SelectItem>
                   ))}
                 </SelectContent>
