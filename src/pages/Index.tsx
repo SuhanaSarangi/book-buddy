@@ -162,86 +162,98 @@ export default function Index() {
 
       <main className="flex flex-1 flex-col">
         <ErrorBoundary>
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8">
-            {loadingMessages ? (
-              <div className="mx-auto max-w-3xl space-y-4">
-                <SkeletonMessage isUser />
-                <SkeletonMessage />
-                <SkeletonMessage isUser />
-                <SkeletonMessage />
-              </div>
-            ) : localMessages.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <BookOpen className="mb-4 h-12 w-12 text-primary/30" />
-                <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
-                  Ask your library anything
-                </h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  Upload books to your private library, then ask questions. Toggle between searching your books, the internet, or both.
-                </p>
-              </div>
-            ) : (
-              <div className="mx-auto max-w-3xl space-y-4">
-                {localMessages.map((m, i) => (
-                  <ChatMessage key={i} message={m} />
-                ))}
-                {isLoading && localMessages[localMessages.length - 1]?.role === "user" && (
-                  <div className="flex gap-3">
-                    <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <BookOpen className="h-4 w-4" />
-                    </div>
-                    <div className="rounded-2xl bg-card border border-border px-4 py-3">
-                      <span className="text-sm text-muted-foreground animate-pulse">Thinking…</span>
-                    </div>
+          {readingBook ? (
+            <BookReader
+              bookId={readingBook.id}
+              bookTitle={readingBook.title}
+              bookAuthor={readingBook.author}
+              totalChunks={readingBook.total_chunks}
+              onClose={() => setReadingBook(null)}
+            />
+          ) : (
+            <>
+              <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8">
+                {loadingMessages ? (
+                  <div className="mx-auto max-w-3xl space-y-4">
+                    <SkeletonMessage isUser />
+                    <SkeletonMessage />
+                    <SkeletonMessage isUser />
+                    <SkeletonMessage />
+                  </div>
+                ) : localMessages.length === 0 ? (
+                  <div className="flex h-full flex-col items-center justify-center text-center">
+                    <BookOpen className="mb-4 h-12 w-12 text-primary/30" />
+                    <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
+                      Ask your library anything
+                    </h2>
+                    <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                      Upload books to your private library, then ask questions. Toggle between searching your books, the internet, or both.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mx-auto max-w-3xl space-y-4">
+                    {localMessages.map((m, i) => (
+                      <ChatMessage key={i} message={m} />
+                    ))}
+                    {isLoading && localMessages[localMessages.length - 1]?.role === "user" && (
+                      <div className="flex gap-3">
+                        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <BookOpen className="h-4 w-4" />
+                        </div>
+                        <div className="rounded-2xl bg-card border border-border px-4 py-3">
+                          <span className="text-sm text-muted-foreground animate-pulse">Thinking…</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          <div className="border-t border-border bg-background px-6 py-4">
-            <div className="mx-auto max-w-3xl">
-              <div className="mb-3 flex items-center gap-1">
-                <span className="mr-2 text-xs text-muted-foreground">Search:</span>
-                {SEARCH_MODES.map((mode) => (
-                  <button
-                    key={mode.value}
-                    onClick={() => setSearchMode(mode.value)}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      searchMode === mode.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
+              <div className="border-t border-border bg-background px-6 py-4">
+                <div className="mx-auto max-w-3xl">
+                  <div className="mb-3 flex items-center gap-1">
+                    <span className="mr-2 text-xs text-muted-foreground">Search:</span>
+                    {SEARCH_MODES.map((mode) => (
+                      <button
+                        key={mode.value}
+                        onClick={() => setSearchMode(mode.value)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          searchMode === mode.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {mode.icon}
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); send(); }}
+                    className="flex gap-2"
                   >
-                    {mode.icon}
-                    {mode.label}
-                  </button>
-                ))}
+                    <Input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder={
+                        searchMode === "books"
+                          ? "Ask about your books…"
+                          : searchMode === "internet"
+                          ? "Search the web…"
+                          : "Ask anything…"
+                      }
+                      disabled={isLoading}
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={isLoading || !input.trim()} size="icon">
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </div>
               </div>
-
-              <form
-                onSubmit={(e) => { e.preventDefault(); send(); }}
-                className="flex gap-2"
-              >
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={
-                    searchMode === "books"
-                      ? "Ask about your books…"
-                      : searchMode === "internet"
-                      ? "Search the web…"
-                      : "Ask anything…"
-                  }
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button type="submit" disabled={isLoading || !input.trim()} size="icon">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-          </div>
+            </>
+          )}
         </ErrorBoundary>
       </main>
     </div>
