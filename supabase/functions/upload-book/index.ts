@@ -84,34 +84,10 @@ serve(async (req) => {
 
     if (bookErr) throw bookErr;
 
-    // Generate embeddings and insert chunks
+    // Insert chunks (full-text search is handled automatically via generated tsvector column)
     for (let i = 0; i < chunks.length; i++) {
-      const embeddingRes = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          input: chunks[i],
-          model: "text-embedding-004",
-        }),
-      });
-
-      if (!embeddingRes.ok) {
-        console.error(`Embedding error for chunk ${i}:`, await embeddingRes.text());
-        await supabase.from("book_chunks").insert({
-          book_id: book.id, chunk_index: i, content: chunks[i],
-        });
-        continue;
-      }
-
-      const embData = await embeddingRes.json();
-      const embedding = embData.data?.[0]?.embedding;
-
       await supabase.from("book_chunks").insert({
         book_id: book.id, chunk_index: i, content: chunks[i],
-        embedding: embedding ? JSON.stringify(embedding) : null,
       });
     }
 
