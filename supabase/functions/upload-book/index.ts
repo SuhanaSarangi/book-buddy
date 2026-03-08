@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import pdf from "https://esm.sh/pdf-parse@1.1.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +15,25 @@ function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
     start += chunkSize - overlap;
   }
   return chunks;
+}
+
+async function extractPdfText(buffer: Uint8Array): Promise<string> {
+  // Use pdfjs-dist which works without Node fs
+  const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.0.379/build/pdf.mjs");
+  
+  const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const pages: string[] = [];
+  
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item: any) => item.str)
+      .join(" ");
+    pages.push(pageText);
+  }
+  
+  return pages.join("\n\n");
 }
 
 serve(async (req) => {
@@ -48,10 +66,15 @@ serve(async (req) => {
     if (isPdf) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = new Uint8Array(arrayBuffer);
-      const pdfData = await pdf(buffer);
-      text = pdfData.text;
+      text = await extractPdfText(buffer);
     } else {
       text = await file.text();
+    }
+
+    if (!text.trim()) {
+      return new Response(JSON.stringify({ error: "Could not extract text from file" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Upload to storage
