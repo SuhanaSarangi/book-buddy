@@ -28,6 +28,12 @@ export default function Index() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>("both");
+  const [readingBook, setReadingBook] = useState<{
+    id: string;
+    title: string;
+    author: string | null;
+    total_chunks: number;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
