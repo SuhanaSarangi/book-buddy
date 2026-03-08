@@ -37,6 +37,7 @@ export function BookSidebar({
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const loadBooks = async () => {
