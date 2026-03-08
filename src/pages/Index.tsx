@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BookSidebar } from "@/components/BookSidebar";
@@ -17,6 +18,7 @@ const SEARCH_MODES: { value: SearchMode; label: string; icon: React.ReactNode }[
 ];
 
 export default function Index() {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -52,7 +54,7 @@ export default function Index() {
   const createConversation = async () => {
     const { data } = await supabase
       .from("conversations")
-      .insert({ title: "New Chat" })
+      .insert({ title: "New Chat", user_id: user!.id })
       .select()
       .single();
     if (data) {
@@ -69,7 +71,7 @@ export default function Index() {
     if (!convId) {
       const { data } = await supabase
         .from("conversations")
-        .insert({ title: input.slice(0, 50) })
+        .insert({ title: input.slice(0, 50), user_id: user!.id })
         .select()
         .single();
       if (!data) return;
@@ -132,9 +134,7 @@ export default function Index() {
         onBooksChange={() => {}}
       />
 
-      {/* Chat area */}
       <main className="flex flex-1 flex-col">
-        {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8">
           {messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
@@ -165,10 +165,8 @@ export default function Index() {
           )}
         </div>
 
-        {/* Input area */}
         <div className="border-t border-border bg-background px-6 py-4">
           <div className="mx-auto max-w-3xl">
-            {/* Search mode toggle */}
             <div className="mb-3 flex items-center gap-1">
               <span className="mr-2 text-xs text-muted-foreground">Search:</span>
               {SEARCH_MODES.map((mode) => (
