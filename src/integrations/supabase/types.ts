@@ -52,6 +52,98 @@ export type Database = {
           },
         ]
       }
+      book_highlights: {
+        Row: {
+          book_id: string
+          chunk_index: number
+          color: Database["public"]["Enums"]["highlight_color"]
+          created_at: string
+          end_offset: number
+          highlighted_text: string
+          id: string
+          start_offset: number
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          chunk_index: number
+          color?: Database["public"]["Enums"]["highlight_color"]
+          created_at?: string
+          end_offset: number
+          highlighted_text: string
+          id?: string
+          start_offset: number
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          chunk_index?: number
+          color?: Database["public"]["Enums"]["highlight_color"]
+          created_at?: string
+          end_offset?: number
+          highlighted_text?: string
+          id?: string
+          start_offset?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_highlights_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_notes: {
+        Row: {
+          book_id: string
+          chunk_index: number
+          content: string
+          created_at: string
+          highlight_id: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          chunk_index: number
+          content: string
+          created_at?: string
+          highlight_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          highlight_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_notes_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_notes_highlight_id_fkey"
+            columns: ["highlight_id"]
+            isOneToOne: false
+            referencedRelation: "book_highlights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           author: string | null
@@ -261,6 +353,7 @@ export type Database = {
           }
     }
     Enums: {
+      highlight_color: "yellow" | "green" | "blue" | "pink"
       shelf_status: "want_to_read" | "currently_reading" | "completed"
     }
     CompositeTypes: {
@@ -389,6 +482,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      highlight_color: ["yellow", "green", "blue", "pink"],
       shelf_status: ["want_to_read", "currently_reading", "completed"],
     },
   },
