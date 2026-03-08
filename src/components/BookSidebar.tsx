@@ -228,55 +228,15 @@ export function BookSidebar({
           )}
 
           <div className="space-y-1">
-            {filteredBooks.map((b) => {
-              const shelfStatus = getShelfStatus(b.id);
-              return (
-                <div
-                  key={b.id}
-                  className="group rounded-md px-2 py-1.5 text-xs text-sidebar-foreground hover:bg-sidebar-accent/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{b.title}</p>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        {b.author && <span className="truncate">{b.author}</span>}
-                        {b.genre && (
-                          <>
-                            {b.author && <span>·</span>}
-                            <span className="truncate">{b.genre}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => deleteBook(b.id)}
-                      className="ml-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </button>
-                  </div>
-                  {/* Shelf buttons */}
-                  <div className="mt-1 flex gap-1">
-                    {(Object.entries(SHELF_LABELS) as [ShelfStatus, { label: string; icon: React.ReactNode }][]).map(
-                      ([status, { label, icon }]) => (
-                        <button
-                          key={status}
-                          onClick={() => setShelfStatus(b.id, shelfStatus === status ? null : status)}
-                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] transition-colors ${
-                            shelfStatus === status
-                              ? "bg-primary/15 text-primary"
-                              : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                          }`}
-                          title={label}
-                        >
-                          {icon}
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {filteredBooks.map((b) => (
+              <BookItem
+                key={b.id}
+                book={b}
+                shelf={shelves.find((s) => s.book_id === b.id) ?? null}
+                onDelete={() => deleteBook(b.id)}
+                onShelfChange={loadShelves}
+              />
+            ))}
           </div>
         </div>
       </div>
