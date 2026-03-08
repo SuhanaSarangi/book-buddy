@@ -253,6 +253,7 @@ export function BookSidebar({
                     shelf={shelves.find((s) => s.book_id === b.id) ?? null}
                     onDelete={() => handleDelete(b.id)}
                     onShelfChange={invalidateShelves}
+                    onRead={onReadBook ? () => onReadBook(b) : undefined}
                   />
                 ))}
                 {hasNextPage && (
