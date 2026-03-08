@@ -21,6 +21,7 @@ export type Database = {
           content: string
           created_at: string
           embedding: string | null
+          fts: unknown
           id: string
         }
         Insert: {
@@ -29,6 +30,7 @@ export type Database = {
           content: string
           created_at?: string
           embedding?: string | null
+          fts?: unknown
           id?: string
         }
         Update: {
@@ -37,6 +39,7 @@ export type Database = {
           content?: string
           created_at?: string
           embedding?: string | null
+          fts?: unknown
           id?: string
         }
         Relationships: [
@@ -152,6 +155,16 @@ export type Database = {
           content: string
           id: string
           similarity: number
+        }[]
+      }
+      search_book_chunks: {
+        Args: { match_count?: number; search_query: string }
+        Returns: {
+          book_id: string
+          chunk_index: number
+          content: string
+          id: string
+          rank: number
         }[]
       }
     }

@@ -27,51 +27,33 @@ serve(async (req) => {
 
     // Search books if mode includes books
     if (searchMode === "books" || searchMode === "both") {
-      // Get embedding for user query
-      const embRes = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ input: userMessage, model: "text-embedding-004" }),
+      // Use full-text search instead of embeddings
+      const { data: chunks } = await supabase.rpc("search_book_chunks", {
+        search_query: userMessage,
+        match_count: 8,
       });
 
-      if (embRes.ok) {
-        const embData = await embRes.json();
-        const queryEmbedding = embData.data?.[0]?.embedding;
+      if (chunks?.length) {
+        // Get book titles
+        const bookIds = [...new Set(chunks.map((c: any) => c.book_id))];
+        const { data: books } = await supabase
+          .from("books")
+          .select("id, title, author")
+          .in("id", bookIds);
 
-        if (queryEmbedding) {
-          const { data: chunks } = await supabase.rpc("match_book_chunks", {
-            query_embedding: JSON.stringify(queryEmbedding),
-            match_threshold: 0.3,
-            match_count: 5,
+        const bookMap = new Map(books?.map((b: any) => [b.id, b]) || []);
+
+        context += "\n\n--- BOOK EXCERPTS ---\n";
+        for (const chunk of chunks) {
+          const book = bookMap.get(chunk.book_id);
+          const bookLabel = book ? `${book.title}${book.author ? ` by ${book.author}` : ""}` : "Unknown";
+          context += `\n[From "${bookLabel}", chunk ${chunk.chunk_index}]:\n${chunk.content}\n`;
+          sources.push({
+            type: "book",
+            title: book?.title || "Unknown",
+            author: book?.author,
+            chunkIndex: chunk.chunk_index,
           });
-
-          if (chunks?.length) {
-            // Get book titles
-            const bookIds = [...new Set(chunks.map((c: any) => c.book_id))];
-            const { data: books } = await supabase
-              .from("books")
-              .select("id, title, author")
-              .in("id", bookIds);
-
-            const bookMap = new Map(books?.map((b: any) => [b.id, b]) || []);
-
-            context += "\n\n--- BOOK EXCERPTS ---\n";
-            for (const chunk of chunks) {
-              const book = bookMap.get(chunk.book_id);
-              const bookLabel = book ? `${book.title}${book.author ? ` by ${book.author}` : ""}` : "Unknown";
-              context += `\n[From "${bookLabel}", chunk ${chunk.chunk_index}]:\n${chunk.content}\n`;
-              sources.push({
-                type: "book",
-                title: book?.title || "Unknown",
-                author: book?.author,
-                chunkIndex: chunk.chunk_index,
-                similarity: chunk.similarity,
-              });
-            }
-          }
         }
       }
     }
