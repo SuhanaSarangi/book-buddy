@@ -58,27 +58,33 @@ export type Database = {
           created_at: string
           file_path: string | null
           filename: string
+          genre: string | null
           id: string
           title: string
           total_chunks: number | null
+          user_id: string | null
         }
         Insert: {
           author?: string | null
           created_at?: string
           file_path?: string | null
           filename: string
+          genre?: string | null
           id?: string
           title: string
           total_chunks?: number | null
+          user_id?: string | null
         }
         Update: {
           author?: string | null
           created_at?: string
           file_path?: string | null
           filename?: string
+          genre?: string | null
           id?: string
           title?: string
           total_chunks?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -88,18 +94,21 @@ export type Database = {
           id: string
           title: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           title?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           title?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -111,6 +120,7 @@ export type Database = {
           id: string
           role: string
           sources: Json | null
+          user_id: string | null
         }
         Insert: {
           content: string
@@ -119,6 +129,7 @@ export type Database = {
           id?: string
           role: string
           sources?: Json | null
+          user_id?: string | null
         }
         Update: {
           content?: string
@@ -127,6 +138,7 @@ export type Database = {
           id?: string
           role?: string
           sources?: Json | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -134,6 +146,56 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      user_book_shelves: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["shelf_status"]
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["shelf_status"]
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["shelf_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_book_shelves_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
             referencedColumns: ["id"]
           },
         ]
@@ -169,7 +231,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      shelf_status: "want_to_read" | "currently_reading" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -296,6 +358,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      shelf_status: ["want_to_read", "currently_reading", "completed"],
+    },
   },
 } as const
