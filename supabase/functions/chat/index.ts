@@ -13,6 +13,21 @@ serve(async (req) => {
     const { messages, conversationId, searchMode } = await req.json();
     // searchMode: "books" | "internet" | "both"
 
+    // Get user from auth token
+    const authHeader = req.headers.get("Authorization");
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!
+    );
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
+      authHeader?.replace("Bearer ", "") || ""
+    );
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -80,6 +95,7 @@ Guidelines:
         conversation_id: conversationId,
         role: "user",
         content: userMessage,
+        user_id: user.id,
       });
     }
 
@@ -142,6 +158,7 @@ Guidelines:
             role: "assistant",
             content: fullContent,
             sources: sources.length ? sources : null,
+            user_id: user.id,
           });
         }
       },
