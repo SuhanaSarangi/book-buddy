@@ -18,11 +18,9 @@ function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
 }
 
 async function extractPdfText(buffer: Uint8Array): Promise<string> {
-  // Use unpdf which is built for serverless/edge environments
   const { extractText } = await import("npm:unpdf@0.12.1");
   const result = await extractText(buffer);
   console.log(`Extracted text from ${result.totalPages} pages`);
-  // text may be a string or array of strings
   const text = Array.isArray(result.text) ? result.text.join("\n\n") : String(result.text);
   return text;
 }
@@ -31,24 +29,34 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Get user from auth token
+    // Validate auth with getClaims
     const authHeader = req.headers.get("Authorization");
-    const supabaseAuth = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!
-    );
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
-      authHeader?.replace("Bearer ", "") || ""
-    );
-    if (authError || !user) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      console.error("Auth failed:", claimsError?.message);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub as string;
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const title = formData.get("title") as string || file.name;
+    const title = formData.get("title") as string || file?.name || "Untitled";
     const author = formData.get("author") as string || "";
     const genre = formData.get("genre") as string || null;
 
@@ -58,17 +66,32 @@ serve(async (req) => {
       });
     }
 
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: "File too large. Maximum size is 50MB." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate file type
+    const allowedExtensions = [".txt", ".md", ".text", ".pdf"];
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+    if (!allowedExtensions.includes(ext)) {
+      return new Response(JSON.stringify({ error: `Unsupported file type: ${ext}. Allowed: ${allowedExtensions.join(", ")}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`Upload request from user ${userId}: "${title}" (${file.name}, ${(file.size / 1024).toFixed(1)}KB)`);
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-    // Read file content - handle PDF vs text
+    // Read file content
     let text: string;
-    const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+    const isPdf = ext === ".pdf" || file.type === "application/pdf";
 
     if (isPdf) {
       const arrayBuffer = await file.arrayBuffer();
@@ -87,24 +110,41 @@ serve(async (req) => {
     console.log(`Extracted ${text.length} characters, chunking...`);
 
     // Upload to storage
-    const filePath = `${crypto.randomUUID()}-${file.name}`;
-    await supabase.storage.from("books").upload(filePath, file);
+    const filePath = `${userId}/${crypto.randomUUID()}-${file.name}`;
+    const { error: storageErr } = await supabase.storage.from("books").upload(filePath, file);
+    if (storageErr) {
+      console.error("Storage upload failed:", storageErr.message);
+      throw new Error("Failed to upload file to storage");
+    }
 
     // Create book record
     const chunks = chunkText(text);
     console.log(`Created ${chunks.length} chunks`);
     
     const { data: book, error: bookErr } = await supabase.from("books").insert({
-      title, author, genre, filename: file.name, file_path: filePath, total_chunks: chunks.length, user_id: user.id,
+      title, author, genre, filename: file.name, file_path: filePath, total_chunks: chunks.length, user_id: userId,
     }).select().single();
 
-    if (bookErr) throw bookErr;
+    if (bookErr) {
+      console.error("Book insert failed:", bookErr.message);
+      // Clean up uploaded file
+      await supabase.storage.from("books").remove([filePath]);
+      throw bookErr;
+    }
 
-    // Insert chunks (full-text search is handled automatically via generated tsvector column)
-    for (let i = 0; i < chunks.length; i++) {
-      await supabase.from("book_chunks").insert({
-        book_id: book.id, chunk_index: i, content: chunks[i],
-      });
+    // Insert chunks in batches
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      const batch = chunks.slice(i, i + BATCH_SIZE).map((content, j) => ({
+        book_id: book.id,
+        chunk_index: i + j,
+        content,
+      }));
+      const { error: chunkErr } = await supabase.from("book_chunks").insert(batch);
+      if (chunkErr) {
+        console.error(`Chunk batch insert failed at index ${i}:`, chunkErr.message);
+        throw chunkErr;
+      }
     }
 
     console.log(`Book "${title}" uploaded successfully with ${chunks.length} chunks`);

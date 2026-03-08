@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.chat]
 verify_jwt = false
+
+[functions.manage-shelves]
+verify_jwt = false
+
+[functions.manage-books]
+verify_jwt = false
+
+[functions.manage-profile]
+verify_jwt = false

@@ -234,16 +234,31 @@ export type Database = {
           similarity: number
         }[]
       }
-      search_book_chunks: {
-        Args: { match_count?: number; search_query: string }
-        Returns: {
-          book_id: string
-          chunk_index: number
-          content: string
-          id: string
-          rank: number
-        }[]
-      }
+      search_book_chunks:
+        | {
+            Args: { match_count?: number; search_query: string }
+            Returns: {
+              book_id: string
+              chunk_index: number
+              content: string
+              id: string
+              rank: number
+            }[]
+          }
+        | {
+            Args: {
+              match_count?: number
+              p_user_id?: string
+              search_query: string
+            }
+            Returns: {
+              book_id: string
+              chunk_index: number
+              content: string
+              id: string
+              rank: number
+            }[]
+          }
     }
     Enums: {
       shelf_status: "want_to_read" | "currently_reading" | "completed"
