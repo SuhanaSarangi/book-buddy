@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Upload, Trash2, Plus, MessageSquare, LogOut, BookMarked, Library, CheckCircle2, Filter } from "lucide-react";
+import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { BookItem, type BookShelf } from "@/components/BookItem";
 
 const GENRES = [
   "Fiction", "Non-Fiction", "Science Fiction", "Fantasy", "Mystery",
@@ -15,10 +16,10 @@ const GENRES = [
 
 type ShelfStatus = "want_to_read" | "currently_reading" | "completed";
 
-const SHELF_LABELS: Record<ShelfStatus, { label: string; icon: React.ReactNode }> = {
-  want_to_read: { label: "Want to Read", icon: <BookMarked className="h-3 w-3" /> },
-  currently_reading: { label: "Reading", icon: <Library className="h-3 w-3" /> },
-  completed: { label: "Completed", icon: <CheckCircle2 className="h-3 w-3" /> },
+const SHELF_FILTER_LABELS: Record<ShelfStatus, string> = {
+  want_to_read: "Want to Read",
+  currently_reading: "Reading",
+  completed: "Completed",
 };
 
 type Book = {
@@ -29,11 +30,6 @@ type Book = {
   filename: string;
   total_chunks: number | null;
   created_at: string;
-};
-
-type BookShelf = {
-  book_id: string;
-  status: ShelfStatus;
 };
 
 type Conversation = {
