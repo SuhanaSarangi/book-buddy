@@ -172,22 +172,37 @@ export type Database = {
         Row: {
           book_id: string
           created_at: string
+          current_page: number | null
           id: string
+          progress_percent: number | null
           status: Database["public"]["Enums"]["shelf_status"]
+          times_read: number | null
+          total_pages: number | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           book_id: string
           created_at?: string
+          current_page?: number | null
           id?: string
+          progress_percent?: number | null
           status?: Database["public"]["Enums"]["shelf_status"]
+          times_read?: number | null
+          total_pages?: number | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           book_id?: string
           created_at?: string
+          current_page?: number | null
           id?: string
+          progress_percent?: number | null
           status?: Database["public"]["Enums"]["shelf_status"]
+          times_read?: number | null
+          total_pages?: number | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
