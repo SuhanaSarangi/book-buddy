@@ -14,13 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      book_chunks: {
+        Row: {
+          book_id: string
+          chunk_index: number
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+        }
+        Insert: {
+          book_id: string
+          chunk_index: number
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+        }
+        Update: {
+          book_id?: string
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_chunks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      books: {
+        Row: {
+          author: string | null
+          created_at: string
+          file_path: string | null
+          filename: string
+          id: string
+          title: string
+          total_chunks: number | null
+        }
+        Insert: {
+          author?: string | null
+          created_at?: string
+          file_path?: string | null
+          filename: string
+          id?: string
+          title: string
+          total_chunks?: number | null
+        }
+        Update: {
+          author?: string | null
+          created_at?: string
+          file_path?: string | null
+          filename?: string
+          id?: string
+          title?: string
+          total_chunks?: number | null
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          sources: Json | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          sources?: Json | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          sources?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_book_chunks: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          book_id: string
+          chunk_index: number
+          content: string
+          id: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
