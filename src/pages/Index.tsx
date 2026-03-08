@@ -146,11 +146,17 @@ export default function Index() {
         <BookSidebar
           conversations={conversations}
           activeConversationId={activeId}
-          onSelectConversation={setActiveId}
-          onNewConversation={handleNewConversation}
+          onSelectConversation={(id) => { setActiveId(id); setReadingBook(null); }}
+          onNewConversation={() => { handleNewConversation(); setReadingBook(null); }}
           onBooksChange={() => {
             queryClient.invalidateQueries({ queryKey: ["books"] });
           }}
+          onReadBook={(book) => setReadingBook({
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            total_chunks: book.total_chunks || 0,
+          })}
         />
       </ErrorBoundary>
 
