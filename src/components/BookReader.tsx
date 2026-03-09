@@ -177,7 +177,7 @@ export function BookReader({
 
     if (error) {
       logger.error("BookReader", "Failed to add note", error);
-      toast({ title: "Failed to add note", description: error.message, variant: "destructive" });
+      toast({ title: t("reader.failed_note"), description: error.message, variant: "destructive" });
     } else {
       setNewNote("");
       setAddingNoteForHighlight(null);
