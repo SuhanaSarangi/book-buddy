@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown, X, Tag } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { BookItem, type BookShelf } from "@/components/BookItem";
@@ -185,9 +186,12 @@ export function BookSidebar({
             Bibliotheca
           </h1>
         </div>
-        <button onClick={signOut} className="text-muted-foreground hover:text-foreground" title="Sign out">
-          <LogOut className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button onClick={signOut} className="text-muted-foreground hover:text-foreground p-2" title="Sign out">
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Conversations */}
