@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown, X, Tag } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { BookItem, type BookShelf } from "@/components/BookItem";
@@ -12,14 +13,9 @@ import { SkeletonBook } from "@/components/SkeletonBook";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useBooks, useDeleteBook, useShelves, useInvalidateShelves, useSubjects, useCreateSubject, useDeleteSubject } from "@/hooks/useQueries";
 import { logger } from "@/lib/logger";
+import { useTranslation } from "react-i18next";
 
 type ShelfStatus = "want_to_read" | "currently_reading" | "completed";
-
-const SHELF_FILTER_LABELS: Record<ShelfStatus, string> = {
-  want_to_read: "Want to Read",
-  currently_reading: "Reading",
-  completed: "Completed",
-};
 
 type Conversation = {
   id: string;
@@ -42,6 +38,7 @@ export function BookSidebar({
   onBooksChange: () => void;
   onReadBook?: (book: { id: string; title: string; author: string | null; total_chunks: number | null; file_path: string | null }) => void;
 }) {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -56,9 +53,14 @@ export function BookSidebar({
   const { toast } = useToast();
   const { user, signOut } = useAuth();
 
+  const SHELF_FILTER_LABELS: Record<ShelfStatus, string> = {
+    want_to_read: t("sidebar.want_to_read"),
+    currently_reading: t("sidebar.reading"),
+    completed: t("sidebar.completed"),
+  };
+
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // React Query hooks
   const {
     data: booksPages,
     isLoading: loadingBooks,
@@ -74,7 +76,6 @@ export function BookSidebar({
   const invalidateShelves = useInvalidateShelves();
   const deleteBookMutation = useDeleteBook();
 
-  // Flatten paginated books
   const books = useMemo(
     () => booksPages?.pages.flatMap((p) => p.books) ?? [],
     [booksPages]
@@ -104,7 +105,7 @@ export function BookSidebar({
     formData.append("file", file);
     formData.append("title", title || file.name);
     formData.append("author", author);
-    formData.append("genre", subject); // Using genre column for subject
+    formData.append("genre", subject);
 
     try {
       const session = await supabase.auth.getSession();
@@ -124,14 +125,14 @@ export function BookSidebar({
       if (data.error) throw new Error(data.error);
 
       logger.info("BookSidebar", `Book uploaded successfully: ${title || file.name}`);
-      toast({ title: "Book uploaded", description: `"${title || file.name}" has been processed.` });
+      toast({ title: t("sidebar.book_uploaded"), description: t("sidebar.book_uploaded_desc", { name: title || file.name }) });
       setTitle("");
       setAuthor("");
       setSubject("");
       onBooksChange();
     } catch (err: any) {
       logger.error("BookSidebar", "Upload failed", err);
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      toast({ title: t("sidebar.upload_failed"), description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -142,7 +143,7 @@ export function BookSidebar({
       onSuccess: () => onBooksChange(),
       onError: (err) => {
         logger.error("BookSidebar", "Delete failed", err);
-        toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+        toast({ title: t("sidebar.delete_failed"), description: err.message, variant: "destructive" });
       },
     });
   };
@@ -154,10 +155,10 @@ export function BookSidebar({
       {
         onSuccess: () => {
           setNewSubjectName("");
-          toast({ title: "Subject created", description: `"${newSubjectName}" has been added.` });
+          toast({ title: t("sidebar.subject_created"), description: t("sidebar.subject_created_desc", { name: newSubjectName }) });
         },
         onError: (err) => {
-          toast({ title: "Failed to create subject", description: err.message, variant: "destructive" });
+          toast({ title: t("sidebar.subject_create_failed"), description: err.message, variant: "destructive" });
         },
       }
     );
@@ -166,12 +167,12 @@ export function BookSidebar({
   const handleDeleteSubject = (id: string, name: string) => {
     deleteSubjectMutation.mutate(id, {
       onSuccess: () => {
-        toast({ title: "Subject deleted", description: `"${name}" has been removed.` });
+        toast({ title: t("sidebar.subject_deleted"), description: t("sidebar.subject_deleted_desc", { name }) });
         if (subject === name) setSubject("");
         if (filterSubject === name) setFilterSubject("all");
       },
       onError: (err) => {
-        toast({ title: "Failed to delete subject", description: err.message, variant: "destructive" });
+        toast({ title: t("sidebar.subject_delete_failed"), description: err.message, variant: "destructive" });
       },
     });
   };
@@ -183,12 +184,13 @@ export function BookSidebar({
         <div className="flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
           <h1 className="font-[var(--font-display)] text-lg font-bold text-sidebar-foreground">
-            Bibliotheca
+            {t("app_name")}
           </h1>
         </div>
         <div className="flex items-center gap-1">
+          <LanguageSwitcher />
           <ThemeToggle />
-          <button onClick={signOut} className="text-muted-foreground hover:text-foreground p-2" title="Sign out">
+          <button onClick={signOut} className="text-muted-foreground hover:text-foreground p-2" title={t("auth.sign_out")}>
             <LogOut className="h-4 w-4" />
           </button>
         </div>
@@ -198,7 +200,7 @@ export function BookSidebar({
       <div className="flex-1 overflow-y-auto">
         <div className="p-3">
           <Button onClick={onNewConversation} variant="outline" className="w-full justify-start gap-2" size="sm">
-            <Plus className="h-3.5 w-3.5" /> New Chat
+            <Plus className="h-3.5 w-3.5" /> {t("sidebar.new_chat")}
           </Button>
         </div>
         <div className="space-y-0.5 px-2">
@@ -222,13 +224,13 @@ export function BookSidebar({
         <div className="border-t border-sidebar-border p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Library ({filteredBooks.length})
+              {t("sidebar.library")} ({filteredBooks.length})
             </p>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowSubjectManager(!showSubjectManager)}
                 className={`rounded p-1 transition-colors ${showSubjectManager ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                title="Manage subjects"
+                title={t("sidebar.manage_subjects")}
               >
                 <Tag className="h-3.5 w-3.5" />
               </button>
@@ -244,10 +246,10 @@ export function BookSidebar({
           {/* Subject Manager */}
           {showSubjectManager && (
             <div className="mb-3 rounded-md border border-border bg-muted/30 p-2 space-y-2">
-              <p className="text-xs font-medium text-foreground">My Subjects</p>
+              <p className="text-xs font-medium text-foreground">{t("sidebar.my_subjects")}</p>
               <div className="flex gap-1">
                 <Input
-                  placeholder="New subject name"
+                  placeholder={t("sidebar.new_subject_name")}
                   value={newSubjectName}
                   onChange={(e) => setNewSubjectName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCreateSubject()}
@@ -281,7 +283,7 @@ export function BookSidebar({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">No subjects yet. Create one above.</p>
+                <p className="text-xs text-muted-foreground">{t("sidebar.no_subjects")}</p>
               )}
             </div>
           )}
@@ -291,7 +293,7 @@ export function BookSidebar({
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search books…"
+                  placeholder={t("sidebar.search_books")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-7 pl-7 text-xs"
@@ -299,10 +301,10 @@ export function BookSidebar({
               </div>
               <Select value={filterSubject} onValueChange={setFilterSubject}>
                 <SelectTrigger className="h-7 text-xs">
-                  <SelectValue placeholder="All subjects" />
+                  <SelectValue placeholder={t("sidebar.all_subjects")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All subjects</SelectItem>
+                  <SelectItem value="all">{t("sidebar.all_subjects")}</SelectItem>
                   {subjects.map((s) => (
                     <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                   ))}
@@ -310,10 +312,10 @@ export function BookSidebar({
               </Select>
               <Select value={filterShelf} onValueChange={setFilterShelf}>
                 <SelectTrigger className="h-7 text-xs">
-                  <SelectValue placeholder="All shelves" />
+                  <SelectValue placeholder={t("sidebar.all_shelves")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All shelves</SelectItem>
+                  <SelectItem value="all">{t("sidebar.all_shelves")}</SelectItem>
                   {(Object.entries(SHELF_FILTER_LABELS) as [ShelfStatus, string][]).map(([val, label]) => (
                     <SelectItem key={val} value={val}>{label}</SelectItem>
                   ))}
@@ -348,11 +350,11 @@ export function BookSidebar({
                     className="flex w-full items-center justify-center gap-1 rounded-md py-2 text-xs text-muted-foreground hover:bg-muted/30 transition-colors disabled:opacity-50"
                   >
                     <ChevronDown className="h-3 w-3" />
-                    {isFetchingNextPage ? "Loading…" : "Load more"}
+                    {isFetchingNextPage ? t("sidebar.loading") : t("sidebar.load_more")}
                   </button>
                 )}
                 {!isLoading && filteredBooks.length === 0 && (
-                  <p className="py-4 text-center text-xs text-muted-foreground">No books found</p>
+                  <p className="py-4 text-center text-xs text-muted-foreground">{t("sidebar.no_books")}</p>
                 )}
               </>
             )}
@@ -363,24 +365,24 @@ export function BookSidebar({
       {/* Upload section */}
       <div className="border-t border-sidebar-border p-3 space-y-2">
         <Input
-          placeholder="Book title"
+          placeholder={t("sidebar.book_title")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="h-8 text-xs"
         />
         <Input
-          placeholder="Author (optional)"
+          placeholder={t("sidebar.author_optional")}
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           className="h-8 text-xs"
         />
         <Select value={subject} onValueChange={setSubject}>
           <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder="Select subject" />
+            <SelectValue placeholder={t("sidebar.select_subject")} />
           </SelectTrigger>
           <SelectContent>
             {subjects.length === 0 ? (
-              <SelectItem value="none" disabled>Create subjects first</SelectItem>
+              <SelectItem value="none" disabled>{t("sidebar.create_subjects_first")}</SelectItem>
             ) : (
               subjects.map((s) => (
                 <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
@@ -396,7 +398,7 @@ export function BookSidebar({
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-3.5 w-3.5" />
-          {uploading ? "Processing…" : !subject ? "Select a subject first" : "Upload Book"}
+          {uploading ? t("sidebar.processing") : !subject ? t("sidebar.select_subject_first") : t("sidebar.upload_book")}
         </Button>
         <input ref={fileInputRef} type="file" accept=".txt,.md,.text,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
       </div>
