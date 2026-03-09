@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
+import { useTranslation } from "react-i18next";
 
 type HighlightColor = "yellow" | "green" | "blue" | "pink";
 
