@@ -110,7 +110,7 @@ export function PdfViewer({
           <div className="flex h-full items-center justify-center">
             <div className="space-y-3 text-center">
               <Skeleton className="mx-auto h-64 w-48" />
-              <p className="text-sm text-muted-foreground">Loading PDF…</p>
+              <p className="text-sm text-muted-foreground">{t("reader.loading_pdf")}</p>
             </div>
           </div>
         ) : error ? (
