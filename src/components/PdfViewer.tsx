@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { X, ZoomIn, ZoomOut, FileText, BookOpenText, ChevronLeft, ChevronRight } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { getCachedPdfUrl } from "@/lib/bookCache";
+import { useTranslation } from "react-i18next";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -25,6 +26,7 @@ export function PdfViewer({
   onClose: () => void;
   onSwitchToReader: () => void;
 }) {
+  const { t } = useTranslation();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export function PdfViewer({
       } catch (err) {
         logger.error("PdfViewer", "Failed to download PDF", err);
         if (!cancelled) {
-          setError("Could not load PDF. The file may not exist.");
+          setError(t("reader.no_pdf"));
           setLoading(false);
         }
       }
@@ -91,10 +93,10 @@ export function PdfViewer({
             size="sm"
             onClick={onSwitchToReader}
             className="gap-1 text-xs"
-            title="Switch to text reader"
+            title={t("reader.switch_text")}
           >
             <BookOpenText className="h-3.5 w-3.5" />
-            Text View
+            {t("reader.text_view")}
           </Button>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
             <X className="h-4 w-4" />
@@ -108,7 +110,7 @@ export function PdfViewer({
           <div className="flex h-full items-center justify-center">
             <div className="space-y-3 text-center">
               <Skeleton className="mx-auto h-64 w-48" />
-              <p className="text-sm text-muted-foreground">Loading PDF…</p>
+              <p className="text-sm text-muted-foreground">{t("reader.loading_pdf")}</p>
             </div>
           </div>
         ) : error ? (
@@ -117,7 +119,7 @@ export function PdfViewer({
               <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="text-sm text-muted-foreground">{error}</p>
               <Button variant="outline" size="sm" onClick={onSwitchToReader}>
-                View as Text
+                {t("reader.view_as_text")}
               </Button>
             </div>
           </div>
@@ -128,12 +130,12 @@ export function PdfViewer({
               onLoadSuccess={onDocumentLoadSuccess}
               loading={
                 <div className="flex items-center justify-center py-12">
-                  <p className="text-sm text-muted-foreground animate-pulse">Rendering PDF…</p>
+                  <p className="text-sm text-muted-foreground animate-pulse">{t("reader.rendering_pdf")}</p>
                 </div>
               }
               error={
                 <div className="text-center py-12">
-                  <p className="text-sm text-destructive">Failed to render PDF</p>
+                  <p className="text-sm text-destructive">{t("reader.failed_render_pdf")}</p>
                 </div>
               }
             >

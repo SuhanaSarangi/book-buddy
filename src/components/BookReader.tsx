@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
+import { useTranslation } from "react-i18next";
 
 type HighlightColor = "yellow" | "green" | "blue" | "pink";
 
@@ -74,6 +75,7 @@ export function BookReader({
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [chunkIndex, setChunkIndex] = useState(0);
   const [chunk, setChunk] = useState<Chunk | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,7 +152,7 @@ export function BookReader({
 
     if (error) {
       logger.error("BookReader", "Failed to create highlight", error);
-      toast({ title: "Failed to highlight", description: error.message, variant: "destructive" });
+      toast({ title: t("reader.failed_highlight"), description: error.message, variant: "destructive" });
     } else {
       selection.removeAllRanges();
       loadAnnotations();
@@ -175,7 +177,7 @@ export function BookReader({
 
     if (error) {
       logger.error("BookReader", "Failed to add note", error);
-      toast({ title: "Failed to add note", description: error.message, variant: "destructive" });
+      toast({ title: t("reader.failed_note"), description: error.message, variant: "destructive" });
     } else {
       setNewNote("");
       setAddingNoteForHighlight(null);
@@ -270,10 +272,10 @@ export function BookReader({
               size="sm"
               onClick={onSwitchToPdf}
               className="gap-1 text-xs"
-              title="Switch to PDF view"
+              title={t("reader.switch_pdf")}
             >
               <FileText className="h-3.5 w-3.5" />
-              PDF
+              {t("reader.pdf")}
             </Button>
           )}
           <Button
@@ -297,7 +299,7 @@ export function BookReader({
         <ScrollArea className="flex-1 px-8 py-6">
           <div className="mx-auto max-w-2xl">
             <p className="mb-4 text-xs text-muted-foreground">
-              Chunk {chunkIndex + 1} of {totalChunks} · Select text to highlight
+              {t("reader.chunk_of", { current: chunkIndex + 1, total: totalChunks })}
             </p>
 
             {loading ? (
@@ -322,7 +324,7 @@ export function BookReader({
             {addingNoteForHighlight && (
               <div className="mt-3 rounded-md border border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">Note on highlight</p>
+                  <p className="text-xs font-medium text-muted-foreground">{t("reader.note_on_highlight")}</p>
                   <button onClick={() => {
                     deleteHighlight(addingNoteForHighlight);
                     setAddingNoteForHighlight(null);
@@ -342,7 +344,7 @@ export function BookReader({
                   <Textarea
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Add a note…"
+                    placeholder={t("reader.add_note")}
                     className="min-h-[60px] text-xs"
                   />
                   <Button
@@ -351,7 +353,7 @@ export function BookReader({
                     disabled={!newNote.trim()}
                     className="self-end"
                   >
-                    Save
+                    {t("reader.save")}
                   </Button>
                 </div>
               </div>
@@ -366,7 +368,7 @@ export function BookReader({
                 onClick={() => setChunkIndex((i) => i - 1)}
                 className="gap-1"
               >
-                <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                <ChevronLeft className="h-3.5 w-3.5" /> {t("reader.previous")}
               </Button>
               <span className="text-xs text-muted-foreground">
                 {chunkIndex + 1} / {totalChunks}
@@ -378,7 +380,7 @@ export function BookReader({
                 onClick={() => setChunkIndex((i) => i + 1)}
                 className="gap-1"
               >
-                Next <ChevronRight className="h-3.5 w-3.5" />
+                {t("reader.next")} <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
@@ -389,9 +391,9 @@ export function BookReader({
           <div className="w-72 border-l border-border flex flex-col bg-card">
             <div className="border-b border-border px-4 py-3">
               <h3 className="font-[var(--font-display)] text-sm font-semibold text-foreground">
-                Notes
+                {t("reader.notes")}
               </h3>
-              <p className="text-[10px] text-muted-foreground">Chunk {chunkIndex + 1}</p>
+              <p className="text-[10px] text-muted-foreground">{t("reader.chunk_of", { current: chunkIndex + 1, total: totalChunks })}</p>
             </div>
 
             {/* Add general note */}
@@ -402,7 +404,7 @@ export function BookReader({
                   setAddingNoteForHighlight(null);
                   setNewNote(e.target.value);
                 }}
-                placeholder="Add a note for this section…"
+                placeholder={t("reader.add_note_section")}
                 className="min-h-[60px] text-xs"
               />
               <Button
@@ -411,7 +413,7 @@ export function BookReader({
                 onClick={() => addNote(null)}
                 disabled={!newNote.trim() || !!addingNoteForHighlight}
               >
-                Add Note
+                {t("reader.add_note_btn")}
               </Button>
             </div>
 
@@ -455,7 +457,7 @@ export function BookReader({
                 })}
 
                 {chunkNotes.length === 0 && highlights.every((h) => getHighlightNotes(h.id).length === 0) && (
-                  <p className="py-4 text-center text-xs text-muted-foreground">No notes yet</p>
+                  <p className="py-4 text-center text-xs text-muted-foreground">{t("reader.no_notes")}</p>
                 )}
               </div>
             </ScrollArea>

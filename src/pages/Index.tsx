@@ -15,15 +15,11 @@ import { logger } from "@/lib/logger";
 import { Send, BookOpen, Globe, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-
-const SEARCH_MODES: { value: SearchMode; label: string; icon: React.ReactNode }[] = [
-  { value: "books", label: "Books", icon: <BookOpen className="h-3.5 w-3.5" /> },
-  { value: "internet", label: "Web", icon: <Globe className="h-3.5 w-3.5" /> },
-  { value: "both", label: "Both", icon: <Layers className="h-3.5 w-3.5" /> },
-];
+import { useTranslation } from "react-i18next";
 
 export default function Index() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -41,12 +37,16 @@ export default function Index() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // React Query hooks
+  const SEARCH_MODES: { value: SearchMode; label: string; icon: React.ReactNode }[] = [
+    { value: "books", label: t("chat.books"), icon: <BookOpen className="h-3.5 w-3.5" /> },
+    { value: "internet", label: t("chat.web"), icon: <Globe className="h-3.5 w-3.5" /> },
+    { value: "both", label: t("chat.both"), icon: <Layers className="h-3.5 w-3.5" /> },
+  ];
+
   const { data: conversations = [] } = useConversations();
   const { data: fetchedMessages, isLoading: loadingMessages } = useMessages(activeId);
   const createConversation = useCreateConversation();
 
-  // Sync fetched messages with local state (for streaming)
   useEffect(() => {
     if (fetchedMessages && !isLoading) {
       setLocalMessages(fetchedMessages);
@@ -67,7 +67,7 @@ export default function Index() {
       setLocalMessages([]);
     } catch (err: any) {
       logger.error("Index", "Failed to create conversation", err);
-      toast({ title: "Error", description: "Failed to create conversation.", variant: "destructive" });
+      toast({ title: t("auth.error"), description: t("chat.error_conversation"), variant: "destructive" });
     }
   };
 
@@ -85,7 +85,7 @@ export default function Index() {
         setActiveId(convId);
       } catch (err: any) {
         logger.error("Index", "Failed to create conversation for send", err);
-        toast({ title: "Error", description: "Failed to start conversation.", variant: "destructive" });
+        toast({ title: t("auth.error"), description: t("chat.error_start"), variant: "destructive" });
         return;
       }
     }
@@ -119,7 +119,6 @@ export default function Index() {
         },
         onDone: () => {
           setIsLoading(false);
-          // Invalidate messages cache so it has the latest
           queryClient.invalidateQueries({ queryKey: ["messages", convId] });
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
           logger.info("Index", "Chat response complete");
@@ -138,7 +137,7 @@ export default function Index() {
       });
     } catch (e: any) {
       logger.error("Index", "Chat stream failed", e);
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: t("auth.error"), description: e.message, variant: "destructive" });
       setIsLoading(false);
     }
   };
@@ -203,10 +202,10 @@ export default function Index() {
                   <div className="flex h-full flex-col items-center justify-center text-center">
                     <BookOpen className="mb-4 h-12 w-12 text-primary/30" />
                     <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
-                      Ask your library anything
+                      {t("chat.ask_library")}
                     </h2>
                     <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                      Upload books to your private library, then ask questions. Toggle between searching your books, the internet, or both.
+                      {t("chat.chat_description")}
                     </p>
                   </div>
                 ) : (
@@ -220,7 +219,7 @@ export default function Index() {
                           <BookOpen className="h-4 w-4" />
                         </div>
                         <div className="rounded-2xl bg-card border border-border px-4 py-3">
-                          <span className="text-sm text-muted-foreground animate-pulse">Thinking…</span>
+                          <span className="text-sm text-muted-foreground animate-pulse">{t("chat.thinking")}</span>
                         </div>
                       </div>
                     )}
@@ -231,7 +230,7 @@ export default function Index() {
               <div className="border-t border-border bg-background px-6 py-4">
                 <div className="mx-auto max-w-3xl">
                   <div className="mb-3 flex items-center gap-1">
-                    <span className="mr-2 text-xs text-muted-foreground">Search:</span>
+                    <span className="mr-2 text-xs text-muted-foreground">{t("chat.search")}</span>
                     {SEARCH_MODES.map((mode) => (
                       <button
                         key={mode.value}
@@ -257,10 +256,10 @@ export default function Index() {
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={
                         searchMode === "books"
-                          ? "Ask about your books…"
+                          ? t("chat.ask_books")
                           : searchMode === "internet"
-                          ? "Search the web…"
-                          : "Ask anything…"
+                          ? t("chat.search_web")
+                          : t("chat.ask_anything")
                       }
                       disabled={isLoading}
                       className="flex-1"
