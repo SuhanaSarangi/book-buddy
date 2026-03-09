@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,6 +15,7 @@ export default function Auth() {
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,12 +36,12 @@ export default function Auth() {
         });
         if (error) throw error;
         toast({
-          title: "Check your email",
-          description: "We sent you a confirmation link to verify your account.",
+          title: t("auth.check_email"),
+          description: t("auth.check_email_desc"),
         });
       }
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("auth.error"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -45,23 +49,27 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="absolute top-4 right-4 flex items-center gap-1">
+        <LanguageSwitcher />
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <BookOpen className="h-6 w-6 text-primary" />
           </div>
           <h1 className="font-[var(--font-display)] text-2xl font-bold text-foreground">
-            Bibliotheca
+            {t("app_name")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isLogin ? "Sign in to your library" : "Create your account"}
+            {isLogin ? t("auth.sign_in_to_library") : t("auth.create_account")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {!isLogin && (
             <Input
-              placeholder="Display name"
+              placeholder={t("auth.display_name")}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               required
@@ -69,31 +77,31 @@ export default function Auth() {
           )}
           <Input
             type="email"
-            placeholder="Email"
+            placeholder={t("auth.email")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <Input
             type="password"
-            placeholder="Password"
+            placeholder={t("auth.password")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
           />
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Please wait…" : isLogin ? "Sign In" : "Sign Up"}
+            {loading ? t("auth.please_wait") : isLogin ? t("auth.sign_in") : t("auth.sign_up")}
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+          {isLogin ? t("auth.no_account") : t("auth.have_account")}{" "}
           <button
             onClick={() => setIsLogin(!isLogin)}
             className="font-medium text-primary hover:underline"
           >
-            {isLogin ? "Sign Up" : "Sign In"}
+            {isLogin ? t("auth.sign_up") : t("auth.sign_in")}
           </button>
         </p>
       </div>
