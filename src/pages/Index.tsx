@@ -16,6 +16,7 @@ import { Send, BookOpen, Globe, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import rabbitholeLogo from "@/assets/rabbithole-logo.png";
 
 export default function Index() {
   const { user } = useAuth();
