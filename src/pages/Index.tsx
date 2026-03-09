@@ -35,6 +35,7 @@ export default function Index() {
   } | null>(null);
   const [viewMode, setViewMode] = useState<"pdf" | "text">("pdf");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const activeSendRef = useRef<{ convId: string; cancelled: boolean } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -97,6 +98,10 @@ export default function Index() {
     setInput("");
     setIsLoading(true);
 
+    // Track this send so we can detect if the user switched conversations mid-stream
+    const sendToken = { convId, cancelled: false };
+    activeSendRef.current = sendToken;
+
     let assistantContent = "";
 
     logger.info("Index", `Sending message in conversation ${convId}`, { searchMode });
@@ -107,6 +112,7 @@ export default function Index() {
         conversationId: convId,
         searchMode,
         onDelta: (chunk) => {
+          if (sendToken.cancelled) return;
           assistantContent += chunk;
           setLocalMessages((prev) => {
             const last = prev[prev.length - 1];
@@ -119,12 +125,14 @@ export default function Index() {
           });
         },
         onDone: () => {
+          if (sendToken.cancelled) return;
           setIsLoading(false);
           queryClient.invalidateQueries({ queryKey: ["messages", convId] });
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
           logger.info("Index", "Chat response complete");
         },
         onSources: (sources) => {
+          if (sendToken.cancelled) return;
           setLocalMessages((prev) => {
             const last = prev[prev.length - 1];
             if (last?.role === "assistant") {
@@ -137,9 +145,11 @@ export default function Index() {
         },
       });
     } catch (e: any) {
-      logger.error("Index", "Chat stream failed", e);
-      toast({ title: t("auth.error"), description: e.message, variant: "destructive" });
-      setIsLoading(false);
+      if (!sendToken.cancelled) {
+        logger.error("Index", "Chat stream failed", e);
+        toast({ title: t("auth.error"), description: e.message, variant: "destructive" });
+        setIsLoading(false);
+      }
     }
   };
 
@@ -149,8 +159,18 @@ export default function Index() {
         <BookSidebar
           conversations={conversations}
           activeConversationId={activeId}
-          onSelectConversation={(id) => { setActiveId(id); setReadingBook(null); }}
-          onNewConversation={() => { handleNewConversation(); setReadingBook(null); }}
+          onSelectConversation={(id) => {
+            if (activeSendRef.current) activeSendRef.current.cancelled = true;
+            setIsLoading(false);
+            setActiveId(id);
+            setReadingBook(null);
+          }}
+          onNewConversation={() => {
+            if (activeSendRef.current) activeSendRef.current.cancelled = true;
+            setIsLoading(false);
+            handleNewConversation();
+            setReadingBook(null);
+          }}
           onBooksChange={() => {
             queryClient.invalidateQueries({ queryKey: ["books"] });
           }}
