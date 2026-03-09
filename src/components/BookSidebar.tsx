@@ -290,10 +290,20 @@ export function BookSidebar({
                             autoFocus
                             value={editingSubjectName}
                             onChange={(e) => setEditingSubjectName(e.target.value)}
-                            onBlur={() => setEditingSubjectId(null)}
+                            onBlur={() => {
+                              if (editingSubjectName.trim() && editingSubjectName.trim() !== s.name) {
+                                renameSubjectMutation.mutate({ subjectId: s.id, name: editingSubjectName.trim() });
+                              }
+                              setEditingSubjectId(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                setEditingSubjectId(null);
+                              }
+                            }}
                             className="w-16 bg-transparent outline-none text-xs"
                           />
-                          <button type="submit" className="hover:text-foreground">
+                          <button type="submit" onMouseDown={(e) => e.preventDefault()} className="hover:text-foreground">
                             <Check className="h-3 w-3" />
                           </button>
                         </form>
