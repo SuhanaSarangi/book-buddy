@@ -67,7 +67,7 @@ export function BookSidebar({
   } = useBooks(debouncedSearch);
 
   const { data: shelves = [], isLoading: loadingShelves } = useShelves();
-  const { data: subjects = [] } = useSubjects();
+  const { data: subjects = [] } = useSubjects(user?.id);
   const createSubjectMutation = useCreateSubject();
   const deleteSubjectMutation = useDeleteSubject();
   const invalidateShelves = useInvalidateShelves();
