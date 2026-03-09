@@ -55,9 +55,7 @@ export default function Auth() {
       </div>
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <BookOpen className="h-6 w-6 text-primary" />
-          </div>
+          <img src={rabbitholeLogo} alt="Rabbit Hole" className="h-20 w-20" />
           <h1 className="font-[var(--font-display)] text-2xl font-bold text-foreground">
             {t("app_name")}
           </h1>
