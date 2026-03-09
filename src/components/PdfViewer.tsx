@@ -129,7 +129,7 @@ export function PdfViewer({
         ) : (
           <div className="flex flex-col items-center py-4">
             <Document
-              file={{ data: pdfData! }}
+              file={pdfUrl!}
               onLoadSuccess={onDocumentLoadSuccess}
               loading={
                 <div className="flex items-center justify-center py-12">
