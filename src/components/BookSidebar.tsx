@@ -3,20 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown } from "lucide-react";
+import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown, X, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { BookItem, type BookShelf } from "@/components/BookItem";
 import { SkeletonBook } from "@/components/SkeletonBook";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useBooks, useDeleteBook, useShelves, useInvalidateShelves } from "@/hooks/useQueries";
+import { useBooks, useDeleteBook, useShelves, useInvalidateShelves, useSubjects, useCreateSubject, useDeleteSubject } from "@/hooks/useQueries";
 import { logger } from "@/lib/logger";
-
-const GENRES = [
-  "Fiction", "Non-Fiction", "Science Fiction", "Fantasy", "Mystery",
-  "Romance", "Thriller", "Biography", "History", "Science",
-  "Philosophy", "Self-Help", "Technology", "Poetry", "Other",
-];
 
 type ShelfStatus = "want_to_read" | "currently_reading" | "completed";
 
@@ -50,11 +44,13 @@ export function BookSidebar({
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [genre, setGenre] = useState("");
-  const [filterGenre, setFilterGenre] = useState<string>("all");
+  const [subject, setSubject] = useState("");
+  const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterShelf, setFilterShelf] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState("");
+  const [showSubjectManager, setShowSubjectManager] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user, signOut } = useAuth();
@@ -71,6 +67,9 @@ export function BookSidebar({
   } = useBooks(debouncedSearch);
 
   const { data: shelves = [], isLoading: loadingShelves } = useShelves();
+  const { data: subjects = [] } = useSubjects();
+  const createSubjectMutation = useCreateSubject();
+  const deleteSubjectMutation = useDeleteSubject();
   const invalidateShelves = useInvalidateShelves();
   const deleteBookMutation = useDeleteBook();
 
@@ -85,7 +84,7 @@ export function BookSidebar({
   };
 
   const filteredBooks = books.filter((b) => {
-    if (filterGenre !== "all" && b.genre !== filterGenre) return false;
+    if (filterSubject !== "all" && b.genre !== filterSubject) return false;
     if (filterShelf !== "all") {
       const shelf = getShelfStatus(b.id);
       if (shelf !== filterShelf) return false;
@@ -93,7 +92,6 @@ export function BookSidebar({
     return true;
   });
 
-  const uniqueGenres = [...new Set(books.map((b) => b.genre).filter(Boolean))] as string[];
   const isLoading = loadingBooks && books.length === 0;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,7 +103,7 @@ export function BookSidebar({
     formData.append("file", file);
     formData.append("title", title || file.name);
     formData.append("author", author);
-    formData.append("genre", genre);
+    formData.append("genre", subject); // Using genre column for subject
 
     try {
       const session = await supabase.auth.getSession();
@@ -128,7 +126,7 @@ export function BookSidebar({
       toast({ title: "Book uploaded", description: `"${title || file.name}" has been processed.` });
       setTitle("");
       setAuthor("");
-      setGenre("");
+      setSubject("");
       onBooksChange();
     } catch (err: any) {
       logger.error("BookSidebar", "Upload failed", err);
@@ -144,6 +142,35 @@ export function BookSidebar({
       onError: (err) => {
         logger.error("BookSidebar", "Delete failed", err);
         toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+      },
+    });
+  };
+
+  const handleCreateSubject = () => {
+    if (!newSubjectName.trim() || !user) return;
+    createSubjectMutation.mutate(
+      { name: newSubjectName.trim(), userId: user.id },
+      {
+        onSuccess: () => {
+          setNewSubjectName("");
+          toast({ title: "Subject created", description: `"${newSubjectName}" has been added.` });
+        },
+        onError: (err) => {
+          toast({ title: "Failed to create subject", description: err.message, variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const handleDeleteSubject = (id: string, name: string) => {
+    deleteSubjectMutation.mutate(id, {
+      onSuccess: () => {
+        toast({ title: "Subject deleted", description: `"${name}" has been removed.` });
+        if (subject === name) setSubject("");
+        if (filterSubject === name) setFilterSubject("all");
+      },
+      onError: (err) => {
+        toast({ title: "Failed to delete subject", description: err.message, variant: "destructive" });
       },
     });
   };
@@ -193,13 +220,67 @@ export function BookSidebar({
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Library ({filteredBooks.length})
             </p>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`rounded p-1 transition-colors ${showFilters ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              <Filter className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowSubjectManager(!showSubjectManager)}
+                className={`rounded p-1 transition-colors ${showSubjectManager ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                title="Manage subjects"
+              >
+                <Tag className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`rounded p-1 transition-colors ${showFilters ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Filter className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
+
+          {/* Subject Manager */}
+          {showSubjectManager && (
+            <div className="mb-3 rounded-md border border-border bg-muted/30 p-2 space-y-2">
+              <p className="text-xs font-medium text-foreground">My Subjects</p>
+              <div className="flex gap-1">
+                <Input
+                  placeholder="New subject name"
+                  value={newSubjectName}
+                  onChange={(e) => setNewSubjectName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateSubject()}
+                  className="h-7 text-xs flex-1"
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 px-2"
+                  onClick={handleCreateSubject}
+                  disabled={!newSubjectName.trim() || createSubjectMutation.isPending}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              {subjects.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {subjects.map((s) => (
+                    <span
+                      key={s.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
+                    >
+                      {s.name}
+                      <button
+                        onClick={() => handleDeleteSubject(s.id, s.name)}
+                        className="hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No subjects yet. Create one above.</p>
+              )}
+            </div>
+          )}
 
           {showFilters && (
             <div className="mb-2 space-y-1.5">
@@ -212,14 +293,14 @@ export function BookSidebar({
                   className="h-7 pl-7 text-xs"
                 />
               </div>
-              <Select value={filterGenre} onValueChange={setFilterGenre}>
+              <Select value={filterSubject} onValueChange={setFilterSubject}>
                 <SelectTrigger className="h-7 text-xs">
-                  <SelectValue placeholder="All genres" />
+                  <SelectValue placeholder="All subjects" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All genres</SelectItem>
-                  {uniqueGenres.map((g) => (
-                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  <SelectItem value="all">All subjects</SelectItem>
+                  {subjects.map((s) => (
+                    <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -289,14 +370,18 @@ export function BookSidebar({
           onChange={(e) => setAuthor(e.target.value)}
           className="h-8 text-xs"
         />
-        <Select value={genre} onValueChange={setGenre}>
+        <Select value={subject} onValueChange={setSubject}>
           <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder="Select genre" />
+            <SelectValue placeholder="Select subject" />
           </SelectTrigger>
           <SelectContent>
-            {GENRES.map((g) => (
-              <SelectItem key={g} value={g}>{g}</SelectItem>
-            ))}
+            {subjects.length === 0 ? (
+              <SelectItem value="none" disabled>Create subjects first</SelectItem>
+            ) : (
+              subjects.map((s) => (
+                <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
         <Button
