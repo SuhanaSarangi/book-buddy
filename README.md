@@ -119,6 +119,34 @@ supabase/
     └── upload-book/       # File upload, text extraction, chunking
 ```
 
+### Core RAG Architecture
+
+**Vector Database Setup**
+- **Primary:** PostgreSQL `pgvector` extension for vector embeddings and similarity search
+- **Fallback:** PostgreSQL's `TSVector` full-text search for keyword-based retrieval
+
+**RAG Workflow**
+
+1. **Document Ingestion** (`supabase/functions/upload-book/index.ts`)
+   - Extracts text from PDFs using the `unpdf` library
+   - Chunks text into smaller pieces (1000 characters with 200-character overlap for context preservation)
+   - Stores chunks in the database with metadata (chunk index, book ID, creation timestamp)
+
+2. **Retrieval** (`supabase/functions/chat/index.ts`)
+   - Executes full-text search queries against the `book_chunks` table scoped to the user's library
+   - Returns ranked results based on relevance
+   - Filters results by user ownership for privacy and security
+
+3. **Generation** (with Context)
+   - Passes retrieved chunks as system context to the Lovable AI Gateway
+   - LLM synthesizes a response combining book knowledge with general knowledge
+   - Response is streamed to the client in real-time
+
+4. **Search Modes**
+   - **"books"** — Searches only in the user's personal book library using full-text search
+   - **"internet"** — Uses LLM general knowledge without book context
+   - **"both"** — Combines retrieved book excerpts with internet knowledge for comprehensive answers
+
 ### Database Schema
 
 | Table | Purpose |
