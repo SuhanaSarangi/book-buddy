@@ -121,20 +121,15 @@ supabase/
 
 ### Core RAG Architecture
 
-**Vector Database Setup (pgvector)**
-- PostgreSQL `pgvector` extension enables vector embeddings and cosine similarity search
-- `book_chunks.embedding` column stores vector embeddings (generated via `text-embedding-3-small` model)
-- `match_book_chunks()` function performs similarity search with configurable threshold and user scoping
+**Vector Database Setup (pgvector)** *(prepared, not yet active)*
+- PostgreSQL `pgvector` extension is installed with `book_chunks.embedding` column ready
+- `match_book_chunks()` function exists for cosine similarity search with user scoping
+- Requires an external embedding API (e.g. OpenAI) to generate vectors — not yet connected
 
-**Full-Text Search (TSVector)**
-- PostgreSQL's built-in `TSVector` full-text search serves as keyword-based retrieval
+**Full-Text Search (TSVector)** *(active)*
+- PostgreSQL's built-in `TSVector` full-text search for keyword-based retrieval
 - `search_book_chunks()` function ranks results using `ts_rank`
-- Acts as complement to vector search and fallback when embeddings are unavailable
-
-**Hybrid Search**
-- Chat retrieval combines both vector similarity and full-text search for best results
-- Vector search captures semantic meaning; full-text search captures exact keyword matches
-- Results are deduplicated by chunk ID before being sent as context to the LLM
+- Currently the primary search method for RAG retrieval
 
 **RAG Workflow**
 
@@ -142,27 +137,19 @@ supabase/
    - Extracts text from PDFs using the `unpdf` library
    - Chunks text into smaller pieces (1000 characters with 200-character overlap for context preservation)
    - Stores chunks in the database with metadata (chunk index, book ID, creation timestamp)
-   - **Triggers vector embedding generation** asynchronously via `generate-embeddings` edge function
 
-2. **Embedding Generation** (`supabase/functions/generate-embeddings/index.ts`)
-   - Processes book chunks in batches of 20
-   - Generates vector embeddings using the `text-embedding-3-small` model via Lovable AI Gateway
-   - Stores embeddings in the `book_chunks.embedding` column
-   - Runs asynchronously after upload — books are searchable via full-text immediately, with semantic search becoming available once embeddings complete
+2. **Retrieval** (`supabase/functions/chat/index.ts`)
+   - Executes full-text search queries against the `book_chunks` table scoped to the user's library
+   - Returns ranked results based on relevance
+   - Filters results by user ownership for privacy and security
 
-3. **Retrieval** (`supabase/functions/chat/index.ts`)
-   - **Vector similarity search**: Embeds the user query, then finds semantically similar chunks via `match_book_chunks()`
-   - **Full-text search**: Runs keyword search via `search_book_chunks()` as complement/fallback
-   - Deduplicates and merges results from both search methods
-   - Filters all results by user ownership for privacy and security
-
-4. **Generation** (with Context)
+3. **Generation** (with Context)
    - Passes retrieved chunks as system context to the Lovable AI Gateway
    - LLM synthesizes a response combining book knowledge with general knowledge
    - Response is streamed to the client in real-time
 
-5. **Search Modes**
-   - **"books"** — Hybrid search (vector + full-text) in the user's personal book library
+4. **Search Modes**
+   - **"books"** — Full-text search in the user's personal book library
    - **"internet"** — Uses LLM general knowledge without book context
    - **"both"** — Combines retrieved book excerpts with internet knowledge for comprehensive answers
 
@@ -171,7 +158,7 @@ supabase/
 | Table | Purpose |
 |-------|---------|
 | `books` | Book metadata (title, author, genre, file path) |
-| `book_chunks` | Extracted text chunks with full-text search index + vector embeddings |
+| `book_chunks` | Extracted text chunks with full-text search index + vector embedding column (prepared) |
 | `book_highlights` | User text highlights with color and position |
 | `book_notes` | User notes, optionally linked to highlights |
 | `conversations` | Chat conversation metadata |
@@ -184,9 +171,8 @@ supabase/
 
 | Function | Description |
 |----------|-------------|
-| `chat` | Authenticates user, performs hybrid search (vector + full-text), builds context, streams AI response, saves messages |
-| `upload-book` | Validates file, extracts text (PDF via unpdf), chunks text, uploads to storage, triggers embedding generation |
-| `generate-embeddings` | Generates vector embeddings for book chunks using text-embedding-3-small model |
+| `chat` | Authenticates user, searches book chunks via full-text search, builds context, streams AI response, saves messages |
+| `upload-book` | Validates file, extracts text (PDF via unpdf), chunks text, uploads to storage, inserts book + chunks |
 | `manage-books` | Lists books with pagination/search/filter; deletes books with cascade cleanup |
 | `manage-shelves` | CRUD for reading shelf: add/update status, track progress, remove |
 | `manage-profile` | Get and update user profile (display name) |
