@@ -186,9 +186,12 @@ export function BookSidebar({
             Bibliotheca
           </h1>
         </div>
-        <button onClick={signOut} className="text-muted-foreground hover:text-foreground" title="Sign out">
-          <LogOut className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button onClick={signOut} className="text-muted-foreground hover:text-foreground p-2" title="Sign out">
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Conversations */}
