@@ -344,7 +344,7 @@ export function BookReader({
                   <Textarea
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Add a note…"
+                    placeholder={t("reader.add_note")}
                     className="min-h-[60px] text-xs"
                   />
                   <Button
