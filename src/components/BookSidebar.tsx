@@ -388,11 +388,11 @@ export function BookSidebar({
           variant="secondary"
           className="w-full gap-2"
           size="sm"
-          disabled={uploading}
+          disabled={uploading || !subject}
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-3.5 w-3.5" />
-          {uploading ? "Processing…" : "Upload Book"}
+          {uploading ? "Processing…" : !subject ? "Select a subject first" : "Upload Book"}
         </Button>
         <input ref={fileInputRef} type="file" accept=".txt,.md,.text,.pdf" className="hidden" onChange={handleUpload} disabled={uploading} />
       </div>
