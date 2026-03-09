@@ -135,7 +135,7 @@ export function PdfViewer({
               }
               error={
                 <div className="text-center py-12">
-                  <p className="text-sm text-destructive">Failed to render PDF</p>
+                  <p className="text-sm text-destructive">{t("reader.failed_render_pdf")}</p>
                 </div>
               }
             >

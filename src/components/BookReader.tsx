@@ -457,7 +457,7 @@ export function BookReader({
                 })}
 
                 {chunkNotes.length === 0 && highlights.every((h) => getHighlightNotes(h.id).length === 0) && (
-                  <p className="py-4 text-center text-xs text-muted-foreground">No notes yet</p>
+                  <p className="py-4 text-center text-xs text-muted-foreground">{t("reader.no_notes")}</p>
                 )}
               </div>
             </ScrollArea>
