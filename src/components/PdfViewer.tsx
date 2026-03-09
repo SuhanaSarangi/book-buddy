@@ -93,10 +93,10 @@ export function PdfViewer({
             size="sm"
             onClick={onSwitchToReader}
             className="gap-1 text-xs"
-            title="Switch to text reader"
+            title={t("reader.switch_text")}
           >
             <BookOpenText className="h-3.5 w-3.5" />
-            Text View
+            {t("reader.text_view")}
           </Button>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
             <X className="h-4 w-4" />
