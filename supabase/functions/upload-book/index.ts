@@ -6,6 +6,39 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function generateEmbeddings(texts: string[]): Promise<(number[] | null)[]> {
+  const NOMIC_API_KEY = Deno.env.get("NOMIC_API_KEY");
+  if (!NOMIC_API_KEY) {
+    console.warn("NOMIC_API_KEY not set, skipping embeddings");
+    return texts.map(() => null);
+  }
+  try {
+    const response = await fetch("https://api-atlas.nomic.ai/v1/embedding/text", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${NOMIC_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "nomic-embed-text-v1.5",
+        texts,
+        task_type: "search_document",
+        dimensionality: 768,
+      }),
+    });
+    if (!response.ok) {
+      const status = response.status;
+      console.warn(`Nomic API error (${status}), skipping embeddings`);
+      return texts.map(() => null);
+    }
+    const result = await response.json();
+    return result.embeddings as number[][];
+  } catch (e) {
+    console.warn("Nomic API exception, skipping embeddings:", e);
+    return texts.map(() => null);
+  }
+}
+
 function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
   const chunks: string[] = [];
   let start = 0;
@@ -132,20 +165,48 @@ serve(async (req) => {
       throw bookErr;
     }
 
-    // Insert chunks in batches
+    // Insert chunks in batches, capturing IDs for embedding generation
     const BATCH_SIZE = 50;
+    const insertedChunkIds: string[] = [];
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
       const batch = chunks.slice(i, i + BATCH_SIZE).map((content, j) => ({
         book_id: book.id,
         chunk_index: i + j,
         content,
       }));
-      const { error: chunkErr } = await supabase.from("book_chunks").insert(batch);
+      const { data: inserted, error: chunkErr } = await supabase
+        .from("book_chunks")
+        .insert(batch)
+        .select("id");
       if (chunkErr) {
         console.error(`Chunk batch insert failed at index ${i}:`, chunkErr.message);
         throw chunkErr;
       }
+      insertedChunkIds.push(...(inserted?.map((r: any) => r.id) ?? []));
     }
+
+    // Generate and store embeddings via Nomic API
+    console.log(`Generating embeddings for ${chunks.length} chunks...`);
+    let embeddingCount = 0;
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      const batchTexts = chunks.slice(i, i + BATCH_SIZE);
+      const batchIds = insertedChunkIds.slice(i, i + BATCH_SIZE);
+      const embeddings = await generateEmbeddings(batchTexts);
+      for (let j = 0; j < embeddings.length; j++) {
+        const emb = embeddings[j];
+        if (!emb) continue;
+        const { error: embErr } = await supabase
+          .from("book_chunks")
+          .update({ embedding: `[${emb.join(",")}]` })
+          .eq("id", batchIds[j]);
+        if (embErr) {
+          console.error(`Failed to store embedding for chunk ${batchIds[j]}:`, embErr.message);
+        } else {
+          embeddingCount++;
+        }
+      }
+    }
+    console.log(`Stored ${embeddingCount}/${chunks.length} embeddings`);
 
     console.log(`Book "${title}" uploaded successfully with ${chunks.length} chunks`);
 

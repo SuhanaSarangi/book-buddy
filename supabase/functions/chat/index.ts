@@ -6,6 +6,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function generateQueryEmbedding(text: string): Promise<number[] | null> {
+  const NOMIC_API_KEY = Deno.env.get("NOMIC_API_KEY");
+  if (!NOMIC_API_KEY) return null;
+  try {
+    const response = await fetch("https://api-atlas.nomic.ai/v1/embedding/text", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${NOMIC_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "nomic-embed-text-v1.5",
+        texts: [text],
+        task_type: "search_query",
+        dimensionality: 768,
+      }),
+    });
+    if (!response.ok) {
+      console.warn(`Nomic query embedding failed (${response.status}), falling back to FTS`);
+      return null;
+    }
+    const result = await response.json();
+    return result.embeddings?.[0] ?? null;
+  } catch (e) {
+    console.warn("Nomic query embedding exception, falling back to FTS:", e);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -85,13 +114,40 @@ serve(async (req) => {
     let context = "";
     let sources: any[] = [];
 
-    // Search books scoped to user
+    // Search books scoped to user (hybrid: vector + FTS via RRF, fallback to FTS-only)
     if (searchMode === "books" || searchMode === "both") {
-      const { data: chunks, error: searchErr } = await supabase.rpc("search_book_chunks", {
-        search_query: userMessage,
-        p_user_id: userId,
-        match_count: 8,
-      });
+      const queryEmbedding = await generateQueryEmbedding(userMessage);
+
+      let chunks: any[] | null = null;
+      let searchErr: any = null;
+
+      if (queryEmbedding) {
+        const result = await supabase.rpc("hybrid_search_book_chunks", {
+          query_embedding: `[${queryEmbedding.join(",")}]`,
+          search_query: userMessage,
+          p_user_id: userId,
+          match_count: 8,
+          rrf_k: 60,
+        });
+        chunks = result.data;
+        searchErr = result.error;
+        if (chunks?.length) {
+          const breakdown = chunks.reduce((acc: any, c: any) => {
+            acc[c.found_by] = (acc[c.found_by] || 0) + 1;
+            return acc;
+          }, {});
+          console.log(`Hybrid search returned ${chunks.length} chunks:`, JSON.stringify(breakdown));
+        }
+      } else {
+        console.log("No query embedding available, using FTS-only search");
+        const result = await supabase.rpc("search_book_chunks", {
+          search_query: userMessage,
+          p_user_id: userId,
+          match_count: 8,
+        });
+        chunks = result.data;
+        searchErr = result.error;
+      }
 
       if (searchErr) {
         console.error("Book search failed:", searchErr.message);
