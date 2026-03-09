@@ -404,7 +404,7 @@ export function BookReader({
                   setAddingNoteForHighlight(null);
                   setNewNote(e.target.value);
                 }}
-                placeholder="Add a note for this section…"
+                placeholder={t("reader.add_note_section")}
                 className="min-h-[60px] text-xs"
               />
               <Button
