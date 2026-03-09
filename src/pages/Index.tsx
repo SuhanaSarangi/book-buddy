@@ -34,7 +34,9 @@ export default function Index() {
     title: string;
     author: string | null;
     total_chunks: number;
+    file_path: string | null;
   } | null>(null);
+  const [viewMode, setViewMode] = useState<"pdf" | "text">("pdf");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
