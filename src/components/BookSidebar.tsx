@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown, X, Tag } from "lucide-react";
+import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown, X, Tag, Pencil, Check } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
