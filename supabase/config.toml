@@ -3,8 +3,7 @@ project_id = "fgdsewgvjaybxfulchtu"
 [functions.upload-book]
 verify_jwt = false
 
-[functions.generate-embeddings]
-verify_jwt = false
+[functions.chat]
 
 [functions.chat]
 verify_jwt = false

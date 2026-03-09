@@ -149,24 +149,6 @@ serve(async (req) => {
 
     console.log(`Book "${title}" uploaded successfully with ${chunks.length} chunks`);
 
-    // Trigger embedding generation asynchronously (fire-and-forget)
-    try {
-      const embeddingUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-embeddings`;
-      fetch(embeddingUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({ bookId: book.id }),
-      }).then(r => {
-        if (!r.ok) console.error("Embedding trigger failed:", r.status);
-        else console.log(`Embedding generation triggered for book ${book.id}`);
-      }).catch(e => console.error("Embedding trigger error:", e));
-    } catch (e) {
-      console.error("Failed to trigger embeddings:", e);
-    }
-
     return new Response(JSON.stringify({ success: true, book }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
