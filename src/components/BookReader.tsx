@@ -368,7 +368,7 @@ export function BookReader({
                 onClick={() => setChunkIndex((i) => i - 1)}
                 className="gap-1"
               >
-                <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                <ChevronLeft className="h-3.5 w-3.5" /> {t("reader.previous")}
               </Button>
               <span className="text-xs text-muted-foreground">
                 {chunkIndex + 1} / {totalChunks}
