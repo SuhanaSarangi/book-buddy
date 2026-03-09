@@ -275,13 +275,45 @@ export function BookSidebar({
                       key={s.id}
                       className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
                     >
-                      {s.name}
-                      <button
-                        onClick={() => handleDeleteSubject(s.id, s.name)}
-                        className="hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      {editingSubjectId === s.id ? (
+                        <form
+                          className="inline-flex items-center gap-1"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (editingSubjectName.trim() && editingSubjectName.trim() !== s.name) {
+                              renameSubjectMutation.mutate({ subjectId: s.id, name: editingSubjectName.trim() });
+                            }
+                            setEditingSubjectId(null);
+                          }}
+                        >
+                          <input
+                            autoFocus
+                            value={editingSubjectName}
+                            onChange={(e) => setEditingSubjectName(e.target.value)}
+                            onBlur={() => setEditingSubjectId(null)}
+                            className="w-16 bg-transparent outline-none text-xs"
+                          />
+                          <button type="submit" className="hover:text-foreground">
+                            <Check className="h-3 w-3" />
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          {s.name}
+                          <button
+                            onClick={() => { setEditingSubjectId(s.id); setEditingSubjectName(s.name); }}
+                            className="hover:text-foreground"
+                          >
+                            <Pencil className="h-2.5 w-2.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSubject(s.id, s.name)}
+                            className="hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      )}
                     </span>
                   ))}
                 </div>
