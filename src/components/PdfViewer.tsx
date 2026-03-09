@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { X, ZoomIn, ZoomOut, FileText, BookOpenText, ChevronLeft, ChevronRight } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { getCachedPdfUrl } from "@/lib/bookCache";
+import { useTranslation } from "react-i18next";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
