@@ -49,7 +49,9 @@ export function PdfViewer({
       }
 
       const buffer = await data.arrayBuffer();
-      setPdfData(buffer);
+      // Copy the buffer to prevent "detached ArrayBuffer" errors
+      const copy = buffer.slice(0);
+      setPdfData(copy);
       setLoading(false);
     }
 
