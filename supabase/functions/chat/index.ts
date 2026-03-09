@@ -85,20 +85,80 @@ serve(async (req) => {
     let context = "";
     let sources: any[] = [];
 
-    // Search books scoped to user
+    // Search books scoped to user using hybrid search (vector + full-text)
     if (searchMode === "books" || searchMode === "both") {
-      const { data: chunks, error: searchErr } = await supabase.rpc("search_book_chunks", {
-        search_query: userMessage,
-        p_user_id: userId,
-        match_count: 8,
-      });
+      const allChunks: any[] = [];
 
-      if (searchErr) {
-        console.error("Book search failed:", searchErr.message);
+      // 1. Try vector similarity search first
+      let vectorSearchDone = false;
+      try {
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (LOVABLE_API_KEY) {
+          const embResponse = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "text-embedding-3-small",
+              input: [userMessage],
+            }),
+          });
+
+          if (embResponse.ok) {
+            const embResult = await embResponse.json();
+            const queryEmbedding = embResult.data?.[0]?.embedding;
+
+            if (queryEmbedding) {
+              const vectorStr = `[${queryEmbedding.join(",")}]`;
+              const { data: vectorChunks, error: vecErr } = await supabase.rpc("match_book_chunks", {
+                query_embedding: vectorStr,
+                p_user_id: userId,
+                match_threshold: 0.3,
+                match_count: 6,
+              });
+
+              if (!vecErr && vectorChunks?.length) {
+                console.log(`Vector search found ${vectorChunks.length} chunks`);
+                allChunks.push(...vectorChunks.map((c: any) => ({ ...c, search_type: "semantic" })));
+                vectorSearchDone = true;
+              } else if (vecErr) {
+                console.error("Vector search failed:", vecErr.message);
+              }
+            }
+          } else {
+            console.log("Embeddings API not available, falling back to full-text search");
+          }
+        }
+      } catch (e) {
+        console.error("Vector search error:", e);
       }
 
-      if (chunks?.length) {
-        const bookIds = [...new Set(chunks.map((c: any) => c.book_id))];
+      // 2. Full-text search (always run as complement)
+      const { data: ftsChunks, error: ftsErr } = await supabase.rpc("search_book_chunks", {
+        search_query: userMessage,
+        p_user_id: userId,
+        match_count: vectorSearchDone ? 4 : 8,
+      });
+
+      if (ftsErr) {
+        console.error("Full-text search failed:", ftsErr.message);
+      }
+
+      if (ftsChunks?.length) {
+        console.log(`Full-text search found ${ftsChunks.length} chunks`);
+        // Deduplicate by chunk id
+        const existingIds = new Set(allChunks.map((c: any) => c.id));
+        for (const chunk of ftsChunks) {
+          if (!existingIds.has(chunk.id)) {
+            allChunks.push({ ...chunk, search_type: "keyword" });
+          }
+        }
+      }
+
+      if (allChunks.length) {
+        const bookIds = [...new Set(allChunks.map((c: any) => c.book_id))];
         const { data: books } = await supabase
           .from("books")
           .select("id, title, author")
@@ -108,15 +168,16 @@ serve(async (req) => {
         const bookMap = new Map(books?.map((b: any) => [b.id, b]) || []);
 
         context += "\n\n--- BOOK EXCERPTS ---\n";
-        for (const chunk of chunks) {
+        for (const chunk of allChunks) {
           const book = bookMap.get(chunk.book_id);
           const bookLabel = book ? `${book.title}${book.author ? ` by ${book.author}` : ""}` : "Unknown";
-          context += `\n[From "${bookLabel}", chunk ${chunk.chunk_index}]:\n${chunk.content}\n`;
+          context += `\n[From "${bookLabel}", chunk ${chunk.chunk_index} (${chunk.search_type})]:\n${chunk.content}\n`;
           sources.push({
             type: "book",
             title: book?.title || "Unknown",
             author: book?.author,
             chunkIndex: chunk.chunk_index,
+            searchType: chunk.search_type,
           });
         }
       }

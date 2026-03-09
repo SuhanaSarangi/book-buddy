@@ -333,20 +333,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      match_book_chunks: {
-        Args: {
-          match_count?: number
-          match_threshold?: number
-          query_embedding: string
-        }
-        Returns: {
-          book_id: string
-          chunk_index: number
-          content: string
-          id: string
-          similarity: number
-        }[]
-      }
+      match_book_chunks:
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              query_embedding: string
+            }
+            Returns: {
+              book_id: string
+              chunk_index: number
+              content: string
+              id: string
+              similarity: number
+            }[]
+          }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              p_user_id?: string
+              query_embedding: string
+            }
+            Returns: {
+              book_id: string
+              chunk_index: number
+              content: string
+              id: string
+              similarity: number
+            }[]
+          }
       search_book_chunks:
         | {
             Args: { match_count?: number; search_query: string }
