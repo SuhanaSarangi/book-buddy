@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, ZoomIn, ZoomOut, FileText, BookOpenText, ChevronLeft, ChevronRight } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { getCachedPdfUrl } from "@/lib/bookCache";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -33,34 +33,29 @@ export function PdfViewer({
   const [scale, setScale] = useState(1.2);
 
   useEffect(() => {
-    let url: string | null = null;
+    let cancelled = false;
 
     async function loadPdf() {
       setLoading(true);
       setError(null);
-
-      const { data, error: dlError } = await supabase.storage
-        .from("books")
-        .download(filePath);
-
-      if (dlError || !data) {
-        logger.error("PdfViewer", "Failed to download PDF", dlError);
-        setError("Could not load PDF. The file may not exist.");
-        setLoading(false);
-        return;
+      try {
+        const url = await getCachedPdfUrl(filePath);
+        if (!cancelled) {
+          setPdfUrl(url);
+          setLoading(false);
+        }
+      } catch (err) {
+        logger.error("PdfViewer", "Failed to download PDF", err);
+        if (!cancelled) {
+          setError("Could not load PDF. The file may not exist.");
+          setLoading(false);
+        }
       }
-
-      // Use a Blob URL to avoid detached ArrayBuffer issues
-      url = URL.createObjectURL(data);
-      setPdfUrl(url);
-      setLoading(false);
     }
 
     loadPdf();
 
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
+    return () => { cancelled = true; };
   }, [filePath]);
 
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {

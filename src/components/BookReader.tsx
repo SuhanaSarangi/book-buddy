@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCachedChunk, prefetchAdjacentChunks } from "@/lib/bookCache";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,20 +87,15 @@ export function BookReader({
 
   const loadChunk = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("book_chunks")
-      .select("id, chunk_index, content")
-      .eq("book_id", bookId)
-      .eq("chunk_index", chunkIndex)
-      .single();
-
-    if (error) {
-      logger.error("BookReader", "Failed to load chunk", error);
-    } else {
+    try {
+      const data = await getCachedChunk(bookId, chunkIndex);
       setChunk(data as Chunk);
+      prefetchAdjacentChunks(bookId, chunkIndex, totalChunks);
+    } catch (err) {
+      logger.error("BookReader", "Failed to load chunk", err);
     }
     setLoading(false);
-  }, [bookId, chunkIndex]);
+  }, [bookId, chunkIndex, totalChunks]);
 
   const loadAnnotations = useCallback(async () => {
     const [{ data: hl }, { data: nt }] = await Promise.all([
