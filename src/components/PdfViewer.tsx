@@ -25,26 +25,31 @@ export function PdfViewer({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function getSignedUrl() {
+    async function loadPdf() {
       setLoading(true);
       setError(null);
 
-      const { data, error: signError } = await supabase.storage
+      const { data, error: dlError } = await supabase.storage
         .from("books")
-        .createSignedUrl(filePath, 3600); // 1 hour
+        .download(filePath);
 
-      if (signError || !data?.signedUrl) {
-        logger.error("PdfViewer", "Failed to get signed URL", signError);
+      if (dlError || !data) {
+        logger.error("PdfViewer", "Failed to download PDF", dlError);
         setError("Could not load PDF. The file may not exist.");
         setLoading(false);
         return;
       }
 
-      setPdfUrl(data.signedUrl);
+      const url = URL.createObjectURL(data);
+      setPdfUrl(url);
       setLoading(false);
     }
 
-    getSignedUrl();
+    loadPdf();
+
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    };
   }, [filePath]);
 
   return (
