@@ -1,6 +1,6 @@
-# Welcome to your Lovable project
+# Project: Rabbit Hole
 
-## Project info
+## My Personal Knowledge Journey
 
 **URL**: Live App: https://gorabbithole.lovable.app  
 
