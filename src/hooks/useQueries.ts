@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import type { BookShelf } from "@/components/BookItem";
 
+type Subject = { id: string; name: string; created_at: string };
+
 const PAGE_SIZE = 20;
 
 type Book = {
