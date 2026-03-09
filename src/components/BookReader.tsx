@@ -100,7 +100,7 @@ export function BookReader({
   }, [bookId, chunkIndex, totalChunks]);
 
   const loadAnnotations = useCallback(async () => {
-    const [{ data: hl }, { data: nt }] = await Promise.all([
+    const [hlResult, ntResult] = await Promise.all([
       supabase
         .from("book_highlights")
         .select("*")
@@ -116,8 +116,16 @@ export function BookReader({
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false }),
     ]);
-    setHighlights((hl ?? []) as Highlight[]);
-    setNotes((nt ?? []) as Note[]);
+    if (hlResult.error) {
+      logger.error("BookReader", "Failed to load highlights", hlResult.error);
+    } else {
+      setHighlights((hlResult.data ?? []) as Highlight[]);
+    }
+    if (ntResult.error) {
+      logger.error("BookReader", "Failed to load notes", ntResult.error);
+    } else {
+      setNotes((ntResult.data ?? []) as Note[]);
+    }
   }, [bookId, chunkIndex, user]);
 
   useEffect(() => {
@@ -160,8 +168,13 @@ export function BookReader({
   };
 
   const deleteHighlight = async (id: string) => {
-    await supabase.from("book_highlights").delete().eq("id", id).eq("user_id", user!.id);
-    loadAnnotations();
+    const { error } = await supabase.from("book_highlights").delete().eq("id", id).eq("user_id", user!.id);
+    if (error) {
+      logger.error("BookReader", "Failed to delete highlight", error);
+      toast({ title: t("reader.failed_highlight"), description: error.message, variant: "destructive" });
+    } else {
+      loadAnnotations();
+    }
   };
 
   const addNote = async (highlightId: string | null = null) => {
@@ -186,8 +199,13 @@ export function BookReader({
   };
 
   const deleteNote = async (id: string) => {
-    await supabase.from("book_notes").delete().eq("id", id).eq("user_id", user!.id);
-    loadAnnotations();
+    const { error } = await supabase.from("book_notes").delete().eq("id", id).eq("user_id", user!.id);
+    if (error) {
+      logger.error("BookReader", "Failed to delete note", error);
+      toast({ title: t("reader.failed_note"), description: error.message, variant: "destructive" });
+    } else {
+      loadAnnotations();
+    }
   };
 
   // Render content with highlights applied
