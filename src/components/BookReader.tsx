@@ -413,7 +413,7 @@ export function BookReader({
                 onClick={() => addNote(null)}
                 disabled={!newNote.trim() || !!addingNoteForHighlight}
               >
-                Add Note
+                {t("reader.add_note_btn")}
               </Button>
             </div>
 
