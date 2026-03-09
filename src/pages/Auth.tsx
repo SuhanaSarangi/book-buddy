@@ -61,7 +61,8 @@ export default function Auth() {
           <h1 className="font-[var(--font-display)] text-2xl font-bold text-foreground">
             {t("app_name")}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground/70 italic">{t("tagline")}</p>
+          <p className="text-sm text-muted-foreground mt-2">
             {isLogin ? t("auth.sign_in_to_library") : t("auth.create_account")}
           </p>
         </div>
