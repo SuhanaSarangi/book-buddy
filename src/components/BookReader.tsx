@@ -391,9 +391,9 @@ export function BookReader({
           <div className="w-72 border-l border-border flex flex-col bg-card">
             <div className="border-b border-border px-4 py-3">
               <h3 className="font-[var(--font-display)] text-sm font-semibold text-foreground">
-                Notes
+                {t("reader.notes")}
               </h3>
-              <p className="text-[10px] text-muted-foreground">Chunk {chunkIndex + 1}</p>
+              <p className="text-[10px] text-muted-foreground">{t("reader.chunk_of", { current: chunkIndex + 1, total: totalChunks })}</p>
             </div>
 
             {/* Add general note */}
