@@ -200,8 +200,8 @@ export default function Index() {
                     <SkeletonMessage />
                   </div>
                 ) : localMessages.length === 0 ? (
-                   <div className="flex h-full flex-col items-center justify-center text-center">
-                     <img src={rabbitholeLogo} alt="Rabbit Hole" className="mb-4 h-24 w-24" />
+                    <div className="flex h-full flex-col items-center justify-center text-center">
+                      <BookOpen className="mb-4 h-24 w-24 text-muted-foreground" />
                      <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
                        {t("chat.ask_library")}
                      </h2>
