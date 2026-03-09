@@ -299,7 +299,7 @@ export function BookReader({
         <ScrollArea className="flex-1 px-8 py-6">
           <div className="mx-auto max-w-2xl">
             <p className="mb-4 text-xs text-muted-foreground">
-              Chunk {chunkIndex + 1} of {totalChunks} · Select text to highlight
+              {t("reader.chunk_of", { current: chunkIndex + 1, total: totalChunks })}
             </p>
 
             {loading ? (
