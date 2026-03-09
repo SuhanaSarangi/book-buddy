@@ -268,6 +268,18 @@ export function BookReader({
               )
             )}
           </div>
+          {onSwitchToPdf && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSwitchToPdf}
+              className="gap-1 text-xs"
+              title="Switch to PDF view"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              PDF
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
