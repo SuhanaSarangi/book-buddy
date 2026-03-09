@@ -173,9 +173,9 @@ export function useMessages(conversationId: string | null) {
 
 // ── Subjects ──
 
-export function useSubjects() {
+export function useSubjects(userId?: string) {
   return useQuery({
-    queryKey: ["subjects"],
+    queryKey: ["subjects", userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subjects")
@@ -187,6 +187,7 @@ export function useSubjects() {
       }
       return (data ?? []) as Subject[];
     },
+    enabled: !!userId,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
