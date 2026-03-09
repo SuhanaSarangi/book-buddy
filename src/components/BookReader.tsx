@@ -61,12 +61,14 @@ export function BookReader({
   bookAuthor,
   totalChunks,
   onClose,
+  onSwitchToPdf,
 }: {
   bookId: string;
   bookTitle: string;
   bookAuthor: string | null;
   totalChunks: number;
   onClose: () => void;
+  onSwitchToPdf?: () => void;
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
