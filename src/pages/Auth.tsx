@@ -2,11 +2,11 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import rabbitholeLogo from "@/assets/rabbithole-logo.png";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -55,9 +55,7 @@ export default function Auth() {
       </div>
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <BookOpen className="h-6 w-6 text-primary" />
-          </div>
+          <img src={rabbitholeLogo} alt="Rabbit Hole" className="h-20 w-20" />
           <h1 className="font-[var(--font-display)] text-2xl font-bold text-foreground">
             {t("app_name")}
           </h1>
