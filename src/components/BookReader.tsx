@@ -380,7 +380,7 @@ export function BookReader({
                 onClick={() => setChunkIndex((i) => i + 1)}
                 className="gap-1"
               >
-                Next <ChevronRight className="h-3.5 w-3.5" />
+                {t("reader.next")} <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
