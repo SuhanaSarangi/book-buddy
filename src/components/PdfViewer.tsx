@@ -49,7 +49,7 @@ export function PdfViewer({
       } catch (err) {
         logger.error("PdfViewer", "Failed to download PDF", err);
         if (!cancelled) {
-          setError("Could not load PDF. The file may not exist.");
+          setError(t("reader.no_pdf"));
           setLoading(false);
         }
       }
