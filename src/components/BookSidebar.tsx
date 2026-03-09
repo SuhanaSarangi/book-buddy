@@ -73,6 +73,9 @@ export function BookSidebar({
   const { data: subjects = [] } = useSubjects(user?.id);
   const createSubjectMutation = useCreateSubject();
   const deleteSubjectMutation = useDeleteSubject();
+  const renameSubjectMutation = useRenameSubject();
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [editingSubjectName, setEditingSubjectName] = useState("");
   const invalidateShelves = useInvalidateShelves();
   const deleteBookMutation = useDeleteBook();
 
