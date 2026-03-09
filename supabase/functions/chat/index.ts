@@ -121,10 +121,6 @@ serve(async (req) => {
         }
       }
     }
-          });
-        }
-      }
-    }
 
     if (searchMode === "internet" || searchMode === "both") {
       context += "\n\n--- INSTRUCTION ---\nThe user also wants you to search the internet for relevant information. Use your knowledge to provide up-to-date information alongside any book context provided above.\n";
