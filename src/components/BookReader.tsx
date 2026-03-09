@@ -75,6 +75,7 @@ export function BookReader({
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [chunkIndex, setChunkIndex] = useState(0);
   const [chunk, setChunk] = useState<Chunk | null>(null);
   const [loading, setLoading] = useState(true);
