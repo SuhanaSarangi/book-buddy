@@ -186,6 +186,7 @@ export default function Index() {
                 bookAuthor={readingBook.author}
                 totalChunks={readingBook.total_chunks}
                 onClose={() => setReadingBook(null)}
+                onSwitchToPdf={readingBook.file_path ? () => setViewMode("pdf") : undefined}
               />
             )
           ) : (
