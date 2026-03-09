@@ -1,6 +1,7 @@
 {
   "app_name": "RabbitHole",
   "tagline": "My Personal Knowledge Journey",
+  "auth": {
     "sign_in": "Sign In",
     "sign_up": "Sign Up",
     "sign_in_to_library": "Sign in to your library",

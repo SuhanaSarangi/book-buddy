@@ -1,6 +1,7 @@
 {
   "app_name": "RabbitHole",
   "tagline": "Min personliga kunskapsresa",
+  "auth": {
     "sign_in": "Logga in",
     "sign_up": "Skapa konto",
     "sign_in_to_library": "Logga in på ditt bibliotek",
