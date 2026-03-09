@@ -119,7 +119,7 @@ export function PdfViewer({
               <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="text-sm text-muted-foreground">{error}</p>
               <Button variant="outline" size="sm" onClick={onSwitchToReader}>
-                View as Text
+                {t("reader.view_as_text")}
               </Button>
             </div>
           </div>
