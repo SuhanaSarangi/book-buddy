@@ -16,6 +16,7 @@ import { Send, BookOpen, Globe, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import rabbitholeLogo from "@/assets/rabbithole-logo.png";
 
 export default function Index() {
   const { user } = useAuth();
@@ -199,15 +200,15 @@ export default function Index() {
                     <SkeletonMessage />
                   </div>
                 ) : localMessages.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center text-center">
-                    <BookOpen className="mb-4 h-12 w-12 text-primary/30" />
-                    <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
-                      {t("chat.ask_library")}
-                    </h2>
-                    <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                      {t("chat.chat_description")}
-                    </p>
-                  </div>
+                   <div className="flex h-full flex-col items-center justify-center text-center">
+                     <img src={rabbitholeLogo} alt="Rabbit Hole" className="mb-4 h-24 w-24" />
+                     <h2 className="font-[var(--font-display)] text-2xl font-bold text-foreground/80">
+                       {t("chat.ask_library")}
+                     </h2>
+                     <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                       {t("chat.chat_description")}
+                     </p>
+                   </div>
                 ) : (
                   <div className="mx-auto max-w-3xl space-y-4">
                     {localMessages.map((m, i) => (
