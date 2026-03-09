@@ -26,6 +26,7 @@ export function PdfViewer({
   onClose: () => void;
   onSwitchToReader: () => void;
 }) {
+  const { t } = useTranslation();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
