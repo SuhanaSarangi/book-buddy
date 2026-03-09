@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown, X, Tag } from "lucide-react";
+import { BookOpen, Upload, Plus, MessageSquare, LogOut, Filter, Search, ChevronDown, X, Tag, Pencil, Check } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { BookItem, type BookShelf } from "@/components/BookItem";
 import { SkeletonBook } from "@/components/SkeletonBook";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useBooks, useDeleteBook, useShelves, useInvalidateShelves, useSubjects, useCreateSubject, useDeleteSubject } from "@/hooks/useQueries";
+import { useBooks, useDeleteBook, useShelves, useInvalidateShelves, useSubjects, useCreateSubject, useDeleteSubject, useRenameSubject } from "@/hooks/useQueries";
 import { logger } from "@/lib/logger";
 import { useTranslation } from "react-i18next";
 
@@ -73,6 +73,9 @@ export function BookSidebar({
   const { data: subjects = [] } = useSubjects(user?.id);
   const createSubjectMutation = useCreateSubject();
   const deleteSubjectMutation = useDeleteSubject();
+  const renameSubjectMutation = useRenameSubject();
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [editingSubjectName, setEditingSubjectName] = useState("");
   const invalidateShelves = useInvalidateShelves();
   const deleteBookMutation = useDeleteBook();
 
@@ -272,13 +275,45 @@ export function BookSidebar({
                       key={s.id}
                       className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
                     >
-                      {s.name}
-                      <button
-                        onClick={() => handleDeleteSubject(s.id, s.name)}
-                        className="hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      {editingSubjectId === s.id ? (
+                        <form
+                          className="inline-flex items-center gap-1"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (editingSubjectName.trim() && editingSubjectName.trim() !== s.name) {
+                              renameSubjectMutation.mutate({ subjectId: s.id, name: editingSubjectName.trim() });
+                            }
+                            setEditingSubjectId(null);
+                          }}
+                        >
+                          <input
+                            autoFocus
+                            value={editingSubjectName}
+                            onChange={(e) => setEditingSubjectName(e.target.value)}
+                            onBlur={() => setEditingSubjectId(null)}
+                            className="w-16 bg-transparent outline-none text-xs"
+                          />
+                          <button type="submit" className="hover:text-foreground">
+                            <Check className="h-3 w-3" />
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          {s.name}
+                          <button
+                            onClick={() => { setEditingSubjectId(s.id); setEditingSubjectName(s.name); }}
+                            className="hover:text-foreground"
+                          >
+                            <Pencil className="h-2.5 w-2.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSubject(s.id, s.name)}
+                            className="hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      )}
                     </span>
                   ))}
                 </div>
