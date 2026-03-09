@@ -170,3 +170,61 @@ export function useMessages(conversationId: string | null) {
     gcTime: 5 * 60 * 1000,
   });
 }
+
+// ── Subjects ──
+
+export function useSubjects() {
+  return useQuery({
+    queryKey: ["subjects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subjects")
+        .select("*")
+        .order("name", { ascending: true });
+      if (error) {
+        logger.error("useSubjects", "Failed to fetch subjects", error);
+        throw error;
+      }
+      return (data ?? []) as Subject[];
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateSubject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ name, userId }: { name: string; userId: string }) => {
+      const { data, error } = await supabase
+        .from("subjects")
+        .insert({ name, user_id: userId })
+        .select()
+        .single();
+      if (error) {
+        logger.error("useCreateSubject", "Failed to create subject", error);
+        throw error;
+      }
+      return data as Subject;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    },
+  });
+}
+
+export function useDeleteSubject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (subjectId: string) => {
+      const { error } = await supabase.from("subjects").delete().eq("id", subjectId);
+      if (error) {
+        logger.error("useDeleteSubject", "Failed to delete subject", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    },
+  });
+}
