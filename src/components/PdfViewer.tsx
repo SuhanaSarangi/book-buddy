@@ -25,7 +25,7 @@ export function PdfViewer({
   onClose: () => void;
   onSwitchToReader: () => void;
 }) {
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
@@ -33,6 +33,8 @@ export function PdfViewer({
   const [scale, setScale] = useState(1.2);
 
   useEffect(() => {
+    let url: string | null = null;
+
     async function loadPdf() {
       setLoading(true);
       setError(null);
@@ -48,14 +50,17 @@ export function PdfViewer({
         return;
       }
 
-      const buffer = await data.arrayBuffer();
-      // Copy the buffer to prevent "detached ArrayBuffer" errors
-      const copy = buffer.slice(0);
-      setPdfData(copy);
+      // Use a Blob URL to avoid detached ArrayBuffer issues
+      url = URL.createObjectURL(data);
+      setPdfUrl(url);
       setLoading(false);
     }
 
     loadPdf();
+
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
   }, [filePath]);
 
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
