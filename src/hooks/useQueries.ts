@@ -230,3 +230,19 @@ export function useDeleteSubject() {
     },
   });
 }
+
+export function useRenameSubject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ subjectId, name }: { subjectId: string; name: string }) => {
+      const { error } = await supabase.from("subjects").update({ name }).eq("id", subjectId);
+      if (error) {
+        logger.error("useRenameSubject", "Failed to rename subject", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    },
+  });
+}

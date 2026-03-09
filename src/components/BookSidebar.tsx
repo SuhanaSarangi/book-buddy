@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { BookItem, type BookShelf } from "@/components/BookItem";
 import { SkeletonBook } from "@/components/SkeletonBook";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useBooks, useDeleteBook, useShelves, useInvalidateShelves, useSubjects, useCreateSubject, useDeleteSubject } from "@/hooks/useQueries";
+import { useBooks, useDeleteBook, useShelves, useInvalidateShelves, useSubjects, useCreateSubject, useDeleteSubject, useRenameSubject } from "@/hooks/useQueries";
 import { logger } from "@/lib/logger";
 import { useTranslation } from "react-i18next";
 
