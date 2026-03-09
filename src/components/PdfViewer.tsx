@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, ZoomIn, ZoomOut, FileText, BookOpenText, ChevronLeft, ChevronRight } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { getCachedPdfUrl } from "@/lib/bookCache";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
