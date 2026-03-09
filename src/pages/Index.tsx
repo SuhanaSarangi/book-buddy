@@ -154,25 +154,40 @@ export default function Index() {
           onBooksChange={() => {
             queryClient.invalidateQueries({ queryKey: ["books"] });
           }}
-          onReadBook={(book) => setReadingBook({
-            id: book.id,
-            title: book.title,
-            author: book.author,
-            total_chunks: book.total_chunks || 0,
-          })}
+          onReadBook={(book) => {
+            setReadingBook({
+              id: book.id,
+              title: book.title,
+              author: book.author,
+              total_chunks: book.total_chunks || 0,
+              file_path: book.file_path || null,
+            });
+            setViewMode(book.file_path ? "pdf" : "text");
+          }}
         />
       </ErrorBoundary>
 
       <main className="flex flex-1 flex-col">
         <ErrorBoundary>
           {readingBook ? (
-            <BookReader
-              bookId={readingBook.id}
-              bookTitle={readingBook.title}
-              bookAuthor={readingBook.author}
-              totalChunks={readingBook.total_chunks}
-              onClose={() => setReadingBook(null)}
-            />
+            viewMode === "pdf" && readingBook.file_path ? (
+              <PdfViewer
+                bookId={readingBook.id}
+                bookTitle={readingBook.title}
+                bookAuthor={readingBook.author}
+                filePath={readingBook.file_path}
+                onClose={() => setReadingBook(null)}
+                onSwitchToReader={() => setViewMode("text")}
+              />
+            ) : (
+              <BookReader
+                bookId={readingBook.id}
+                bookTitle={readingBook.title}
+                bookAuthor={readingBook.author}
+                totalChunks={readingBook.total_chunks}
+                onClose={() => setReadingBook(null)}
+              />
+            )
           ) : (
             <>
               <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-8">
