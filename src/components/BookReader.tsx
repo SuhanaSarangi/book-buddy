@@ -272,10 +272,10 @@ export function BookReader({
               size="sm"
               onClick={onSwitchToPdf}
               className="gap-1 text-xs"
-              title="Switch to PDF view"
+              title={t("reader.switch_pdf")}
             >
               <FileText className="h-3.5 w-3.5" />
-              PDF
+              {t("reader.pdf")}
             </Button>
           )}
           <Button
