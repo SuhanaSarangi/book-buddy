@@ -324,7 +324,7 @@ export function BookReader({
             {addingNoteForHighlight && (
               <div className="mt-3 rounded-md border border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">Note on highlight</p>
+                  <p className="text-xs font-medium text-muted-foreground">{t("reader.note_on_highlight")}</p>
                   <button onClick={() => {
                     deleteHighlight(addingNoteForHighlight);
                     setAddingNoteForHighlight(null);
