@@ -353,7 +353,7 @@ export function BookReader({
                     disabled={!newNote.trim()}
                     className="self-end"
                   >
-                    Save
+                    {t("reader.save")}
                   </Button>
                 </div>
               </div>
