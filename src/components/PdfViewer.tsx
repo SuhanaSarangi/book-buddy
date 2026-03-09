@@ -130,7 +130,7 @@ export function PdfViewer({
               onLoadSuccess={onDocumentLoadSuccess}
               loading={
                 <div className="flex items-center justify-center py-12">
-                  <p className="text-sm text-muted-foreground animate-pulse">Rendering PDF…</p>
+                  <p className="text-sm text-muted-foreground animate-pulse">{t("reader.rendering_pdf")}</p>
                 </div>
               }
               error={
