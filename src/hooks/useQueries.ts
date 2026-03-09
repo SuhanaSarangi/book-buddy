@@ -13,6 +13,7 @@ type Book = {
   author: string | null;
   genre: string | null;
   filename: string;
+  file_path: string | null;
   total_chunks: number | null;
   created_at: string;
 };

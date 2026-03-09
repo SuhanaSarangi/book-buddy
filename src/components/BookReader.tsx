@@ -12,6 +12,7 @@ import {
   StickyNote,
   Trash2,
   X,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
@@ -61,12 +62,14 @@ export function BookReader({
   bookAuthor,
   totalChunks,
   onClose,
+  onSwitchToPdf,
 }: {
   bookId: string;
   bookTitle: string;
   bookAuthor: string | null;
   totalChunks: number;
   onClose: () => void;
+  onSwitchToPdf?: () => void;
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -265,6 +268,18 @@ export function BookReader({
               )
             )}
           </div>
+          {onSwitchToPdf && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSwitchToPdf}
+              className="gap-1 text-xs"
+              title="Switch to PDF view"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              PDF
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

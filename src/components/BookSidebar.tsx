@@ -39,7 +39,7 @@ export function BookSidebar({
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onBooksChange: () => void;
-  onReadBook?: (book: { id: string; title: string; author: string | null; total_chunks: number | null }) => void;
+  onReadBook?: (book: { id: string; title: string; author: string | null; total_chunks: number | null; file_path: string | null }) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
