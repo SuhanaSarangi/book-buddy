@@ -152,7 +152,7 @@ export function BookReader({
 
     if (error) {
       logger.error("BookReader", "Failed to create highlight", error);
-      toast({ title: "Failed to highlight", description: error.message, variant: "destructive" });
+      toast({ title: t("reader.failed_highlight"), description: error.message, variant: "destructive" });
     } else {
       selection.removeAllRanges();
       loadAnnotations();
