@@ -2,7 +2,7 @@
 
 **My Personal Knowledge Journey**
 
-Rabbit Hole is a personal knowledge management application that lets you upload books, read them in-app, and chat with an AI assistant that draws answers from your private library and the web.
+Rabbit Hole is a personal knowledge hub where you can upload books, read seamlessly, and chat with an AI that answers questions and clears all your doubts using your library and the web: crafted with care by a mother-daughter duo :)
 
 **Live App**: [gorabbithole.lovable.app](https://gorabbithole.lovable.app)
 
@@ -243,9 +243,3 @@ npm run dev
 2. Expand the book to update page progress and times read
 
 ---
-
-## 🛠️ Deployment
-
-Open [Lovable](https://lovable.dev/projects/ab4c627d-0856-4279-9d0b-b444caf7dd74) and click **Share → Publish**.
-
-Custom domains can be connected via **Project → Settings → Domains**.
